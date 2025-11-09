@@ -11,8 +11,7 @@ type MessageLevel = 'success' | 'error' | 'info'
 
 const themeName = 'byte-json-dark'
 const differ = createDiffer({
-  arrays: { detectMove: false, includeValueOnMove: false },
-  textDiff: { minLength: 120 }
+  arrays: { detectMove: false, includeValueOnMove: false }
 })
 
 const state = reactive({
@@ -179,10 +178,17 @@ function triggerImport(panel: PanelKey) {
 
 function handleImport(panel: PanelKey, event: Event) {
   const input = event.target as HTMLInputElement
-  if (!input.files || input.files.length === 0) {
+  const fileList = input.files
+  if (!fileList || fileList.length === 0) {
+    input.value = ''
     return
   }
-  const file = input.files[0]
+  const file = fileList.item(0)
+  if (!file) {
+    showMessage('error', '未能读取文件，请重试')
+    input.value = ''
+    return
+  }
   const reader = new FileReader()
   reader.onload = () => {
     state[panel] = String(reader.result ?? '')
