@@ -2,7 +2,6 @@
 const props = withDefaults(
   defineProps<{
     icon:
-      | 'swap'
       | 'diff'
       | 'import'
       | 'export'
@@ -38,19 +37,7 @@ const handleClick = () => {
     @click="handleClick"
   >
     <svg
-      v-if="props.icon === 'swap'"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M7 7h10" />
-      <polyline points="14 4 17 7 14 10" />
-      <path d="M17 17H7" />
-      <polyline points="10 14 7 17 10 20" />
-    </svg>
-
-    <svg
-      v-else-if="props.icon === 'diff'"
+      v-if="props.icon === 'diff'"
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"
@@ -150,12 +137,12 @@ const handleClick = () => {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  background: rgba(15, 23, 42, 0.65);
-  color: #e2e8f0;
+  border: 1px solid var(--border-button);
+  background: var(--surface-card);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(2, 6, 23, 0.35);
+  box-shadow: var(--shadow-strong);
 }
 
 .icon-button svg {
@@ -169,21 +156,21 @@ const handleClick = () => {
 }
 
 .icon-button--ghost:hover {
-  border-color: rgba(56, 189, 248, 0.7);
-  color: #38bdf8;
-  box-shadow: 0 8px 18px rgba(56, 189, 248, 0.18);
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  box-shadow: var(--shadow-accent-soft);
 }
 
 .icon-button--ghost.icon-button--active {
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.9);
-  box-shadow: 0 10px 24px rgba(56, 189, 248, 0.32);
+  color: var(--color-brand);
+  border-color: var(--color-brand);
+  box-shadow: var(--shadow-accent-medium);
 }
 
 .icon-button--primary {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.85), rgba(56, 189, 248, 0.9));
+  background: linear-gradient(135deg, var(--color-brand-secondary), var(--color-brand));
   border: none;
-  color: #0b1120;
+  color: var(--text-contrast);
 }
 
 .icon-button--primary svg {
@@ -191,17 +178,17 @@ const handleClick = () => {
 }
 
 .icon-button--primary:hover {
-  filter: brightness(1.08);
-  box-shadow: 0 10px 22px rgba(56, 189, 248, 0.28);
+  filter: brightness(1.05);
+  box-shadow: var(--shadow-accent-medium);
 }
 
 .icon-button--primary.icon-button--active {
-  filter: brightness(1.12);
-  box-shadow: 0 12px 26px rgba(56, 189, 248, 0.34);
+  filter: brightness(1.08);
+  box-shadow: var(--shadow-accent-strong);
 }
 
 .icon-button:focus-visible {
-  outline: 2px solid rgba(56, 189, 248, 0.85);
+  outline: 2px solid var(--color-brand);
   outline-offset: 3px;
 }
 </style>

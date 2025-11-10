@@ -6,11 +6,15 @@ import * as monaco from 'monaco-editor'
 import { jsonrepair } from 'jsonrepair'
 import { create as createDiffer } from 'jsondiffpatch'
 import IconButton from './components/IconButton.vue'
+import Logo from '../src/assets/logo.svg'
 
 type PanelKey = 'source' | 'target'
 type MessageLevel = 'success' | 'error' | 'info'
 
-const themeName = 'byte-json-dark'
+type ThemeMode = 'dark' | 'light'
+const THEME_STORAGE_KEY = 'byte-json-theme'
+const theme = ref<ThemeMode>('dark')
+const editorTheme = computed(() => `byte-json-${theme.value}`)
 const differ = createDiffer({
   arrays: { detectMove: false, includeValueOnMove: false }
 })
@@ -27,7 +31,9 @@ const state = reactive({
 }`
 })
 
-const diffMode = ref(true)
+const mode = ref<'format' | 'diff'>('format')
+type ToolAction = `${PanelKey}-${'import' | 'export' | 'format' | 'minify' | 'repair' | 'clear'}`
+const activeTool = ref<ToolAction | null>(null)
 const busyPanel = ref<PanelKey | null>(null)
 const message = ref<{ level: MessageLevel; text: string } | null>(null)
 const diffInstance = ref<MonacoEditorNS.IStandaloneDiffEditor | null>(null)
@@ -35,6 +41,8 @@ let messageTimer: number | null = null
 
 const sourceInput = ref<HTMLInputElement | null>(null)
 const targetInput = ref<HTMLInputElement | null>(null)
+const previewContent = ref('')
+const previewIsValid = ref(true)
 
 const baseEditorOptions = createDefaultOptions('json')
 Object.assign(baseEditorOptions, {
@@ -51,6 +59,11 @@ Object.assign(baseEditorOptions, {
   padding: { top: 16, bottom: 16 }
 })
 
+const previewEditorOptions = computed(() => ({
+  ...baseEditorOptions,
+  readOnly: true
+}))
+
 const diffEditorOptions: MonacoEditorNS.IStandaloneDiffEditorConstructionOptions = {
   ...baseEditorOptions,
   automaticLayout: true,
@@ -61,22 +74,37 @@ const diffEditorOptions: MonacoEditorNS.IStandaloneDiffEditorConstructionOptions
   readOnly: false
 }
 
+function applyTheme(mode: ThemeMode) {
+  document.documentElement.dataset.theme = mode
+  monaco.editor.setTheme(`byte-json-${mode}`)
+}
+
+const themeToggleTitle = computed(() =>
+  theme.value === 'dark' ? '切换到浅色主题' : '切换到暗色主题'
+)
+
+const isDarkTheme = computed(() => theme.value === 'dark')
+
+function toggleTheme() {
+  theme.value = theme.value === 'dark' ? 'light' : 'dark'
+}
+
 onMounted(() => {
-  monaco.editor.defineTheme(themeName, {
+  monaco.editor.defineTheme('byte-json-dark', {
     base: 'vs-dark',
     inherit: true,
     rules: [
       { token: '', background: '0F172A', foreground: 'E2E8F0' },
-      { token: 'string.key.json', foreground: '38BDF8' },
-      { token: 'string.value.json', foreground: 'FACC15' },
+      { token: 'string.key.json', foreground: '60A5FA' },
+      { token: 'string.value.json', foreground: 'FBBF24' },
       { token: 'number', foreground: 'F97316' },
-      { token: 'keyword.json', foreground: 'A855F7' },
-      { token: 'delimiter', foreground: '64748B' }
+      { token: 'keyword.json', foreground: 'A78BFA' },
+      { token: 'delimiter', foreground: '94A3B8' }
     ],
     colors: {
       'editor.background': '#0f172a',
       'editor.foreground': '#e2e8f0',
-      'editorCursor.foreground': '#38bdf8',
+      'editorCursor.foreground': '#2b6efa',
       'editor.lineHighlightBackground': '#1e293b',
       'editorLineNumber.foreground': '#475569',
       'editorLineNumber.activeForeground': '#e2e8f0',
@@ -91,18 +119,95 @@ onMounted(() => {
       'panel.background': '#0f172a'
     }
   })
+
+  monaco.editor.defineTheme('byte-json-light', {
+    base: 'vs',
+    inherit: true,
+    rules: [
+      { token: '', background: 'FFFFFF', foreground: '1E293B' },
+      { token: 'string.key.json', foreground: '1D4ED8' },
+      { token: 'string.value.json', foreground: 'CA8A04' },
+      { token: 'number', foreground: 'C2410C' },
+      { token: 'keyword.json', foreground: '6D28D9' },
+      { token: 'delimiter', foreground: '64748B' }
+    ],
+    colors: {
+      'editor.background': '#ffffff',
+      'editor.foreground': '#1e293b',
+      'editorCursor.foreground': '#2b6efa',
+      'editor.lineHighlightBackground': '#e2e8f0',
+      'editorLineNumber.foreground': '#94a3b8',
+      'editorLineNumber.activeForeground': '#1e293b',
+      'editor.selectionBackground': '#cbd5f51f',
+      'editor.inactiveSelectionBackground': '#cbd5f550',
+      'editorWidget.background': '#f8fafc',
+      'editorSuggestWidget.background': '#f8fafc',
+      'scrollbarSlider.background': '#cbd5f580',
+      'scrollbarSlider.hoverBackground': '#94a3b899',
+      'diffEditor.insertedTextBackground': '#22c55e1f',
+      'diffEditor.removedTextBackground': '#f871711f',
+      'panel.background': '#ffffff'
+    }
+  })
+
+  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
+  if (storedTheme === 'dark' || storedTheme === 'light') {
+    theme.value = storedTheme
+  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    theme.value = 'light'
+  }
+
+  applyTheme(theme.value)
+})
+
+watch(theme, (mode) => {
+  applyTheme(mode)
+  window.localStorage.setItem(THEME_STORAGE_KEY, mode)
 })
 
 watch(
-  () => diffMode.value,
-  (enabled) => {
-    if (!enabled) {
+  () => mode.value,
+  (currentMode) => {
+    if (currentMode === 'format') {
       diffInstance.value = null
+    } else if (previewIsValid.value) {
+      state.target = previewContent.value
     }
   }
 )
 
+watch(
+  [() => mode.value, () => state.source],
+  ([currentMode, source]) => {
+    if (currentMode === 'diff') {
+      return
+    }
+    try {
+      const parsed = JSON.parse(source)
+      previewContent.value = JSON.stringify(parsed, null, 2)
+      previewIsValid.value = true
+    } catch (error) {
+      previewContent.value = '// 无法解析 JSON，请检查输入'
+      previewIsValid.value = false
+    }
+  },
+  { immediate: true }
+)
+
 const diffState = computed(() => {
+  if (mode.value === 'format') {
+    return previewIsValid.value
+      ? {
+          ok: true,
+          hasDiff: false,
+          message: '已生成 JSON 预览'
+        }
+      : {
+          ok: false,
+          hasDiff: false,
+          message: '源内容不是有效 JSON'
+        }
+  }
   try {
     const left = JSON.parse(state.source)
     const right = JSON.parse(state.target)
@@ -139,6 +244,7 @@ function handleFormat(panel: PanelKey, space = 2) {
     const parsed = JSON.parse(source)
     state[panel] = JSON.stringify(parsed, null, space)
     showMessage('success', panel === 'source' ? '源 JSON 已格式化' : '目标 JSON 已格式化')
+    activeTool.value = `${panel}-format`
   } catch (error) {
     showMessage('error', '格式化失败，请检查 JSON 是否有效')
   } finally {
@@ -152,6 +258,7 @@ function handleMinify(panel: PanelKey) {
     const parsed = JSON.parse(state[panel])
     state[panel] = JSON.stringify(parsed)
     showMessage('success', panel === 'source' ? '源 JSON 已压缩' : '目标 JSON 已压缩')
+    activeTool.value = `${panel}-minify`
   } catch (error) {
     showMessage('error', '压缩失败，JSON 格式无效')
   } finally {
@@ -165,6 +272,7 @@ function handleRepair(panel: PanelKey) {
     const repaired = jsonrepair(state[panel])
     state[panel] = JSON.stringify(JSON.parse(repaired), null, 2)
     showMessage('success', panel === 'source' ? '尝试修复源 JSON 成功' : '尝试修复目标 JSON 成功')
+    activeTool.value = `${panel}-repair`
   } catch (error) {
     showMessage('error', '修复失败，无法自动识别问题')
   } finally {
@@ -175,6 +283,7 @@ function handleRepair(panel: PanelKey) {
 function triggerImport(panel: PanelKey) {
   const input = panel === 'source' ? sourceInput.value : targetInput.value
   input?.click()
+  activeTool.value = `${panel}-import`
 }
 
 function handleImport(panel: PanelKey, event: Event) {
@@ -195,6 +304,7 @@ function handleImport(panel: PanelKey, event: Event) {
     state[panel] = String(reader.result ?? '')
     showMessage('success', `${file.name} 已加载到${panel === 'source' ? '源' : '目标'}面板`)
     input.value = ''
+    activeTool.value = `${panel}-import`
   }
   reader.onerror = () => {
     showMessage('error', '导入失败，请重试')
@@ -214,6 +324,7 @@ function handleExport(panel: PanelKey) {
     document.body.removeChild(link)
     URL.revokeObjectURL(link.href)
     showMessage('success', '导出成功')
+    activeTool.value = `${panel}-export`
   } catch (error) {
     showMessage('error', '导出失败')
   }
@@ -221,13 +332,7 @@ function handleExport(panel: PanelKey) {
 
 function handleClear(panel: PanelKey) {
   state[panel] = '{\n\n}'
-}
-
-function handleSwap() {
-  const cached = state.source
-  state.source = state.target
-  state.target = cached
-  showMessage('info', '已交换源与目标 JSON')
+  activeTool.value = `${panel}-clear`
 }
 
 function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
@@ -251,77 +356,161 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
 <template>
   <div class="app">
     <header class="top-bar">
-      <div class="brand">
-        <span class="logo-dot" />
-        <span class="brand-text">Byte JSON</span>
+        <img class="logo" :src="Logo" alt="">
+      <div class="top-bar-right">
+        <button
+          type="button"
+          class="theme-toggle"
+          :title="themeToggleTitle"
+          :aria-label="themeToggleTitle"
+          @click="toggleTheme"
+        >
+          <svg v-if="isDarkTheme" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M20 15.5A8 8 0 1 1 12.5 4c-.33.75-.5 1.57-.5 2.41A6.09 6.09 0 0 0 18.09 12c.84 0 1.66-.17 2.41-.5z"
+            />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="4.5" />
+            <line x1="12" y1="2.5" x2="12" y2="5" />
+            <line x1="12" y1="19" x2="12" y2="21.5" />
+            <line x1="4.5" y1="12" x2="7" y2="12" />
+            <line x1="17" y1="12" x2="19.5" y2="12" />
+            <line x1="5.8" y1="5.8" x2="7.6" y2="7.6" />
+            <line x1="16.4" y1="16.4" x2="18.2" y2="18.2" />
+            <line x1="5.8" y1="18.2" x2="7.6" y2="16.4" />
+            <line x1="16.4" y1="7.6" x2="18.2" y2="5.8" />
+          </svg>
+        </button>
       </div>
-      <div class="top-bar-note">轻量的 JSON 工具集</div>
     </header>
 
     <div class="main-layout">
       <aside class="side-toolbar">
         <div class="toolbar-section">
-          <IconButton icon="swap" title="互换源与目标 JSON" @click="handleSwap" />
+          <IconButton
+            icon="format"
+            :variant="mode === 'format' ? 'primary' : 'ghost'"
+            :active="mode === 'format'"
+            title="JSON 预览模式"
+            @click="mode = 'format'"
+          />
           <IconButton
             icon="diff"
-            variant="primary"
-            :active="diffMode"
-            :title="diffMode ? '退出对比视图' : '进入对比视图'"
-            @click="diffMode = !diffMode"
+            :variant="mode === 'diff' ? 'primary' : 'ghost'"
+            :active="mode === 'diff'"
+            :title="mode === 'diff' ? '退出对比视图' : '进入对比视图'"
+            @click="mode = mode === 'diff' ? 'format' : 'diff'"
           />
         </div>
         <div class="toolbar-divider" />
         <div class="toolbar-section">
           <span class="section-label">源</span>
-          <IconButton icon="import" title="导入源 JSON 文件" @click="triggerImport('source')" />
-          <IconButton icon="export" title="导出源 JSON 内容" @click="handleExport('source')" />
-          <IconButton icon="format" title="格式化源 JSON" @click="handleFormat('source')" />
-          <IconButton icon="minify" title="压缩源 JSON" @click="handleMinify('source')" />
-          <IconButton icon="repair" title="尝试修复源 JSON" @click="handleRepair('source')" />
-          <IconButton icon="clear" title="清空源 JSON" @click="handleClear('source')" />
+          <IconButton
+            icon="import"
+            title="导入源 JSON 文件"
+            :active="activeTool === 'source-import'"
+            @click="triggerImport('source')"
+          />
+          <IconButton
+            icon="export"
+            title="导出源 JSON 内容"
+            :active="activeTool === 'source-export'"
+            @click="handleExport('source')"
+          />
+          <IconButton
+            icon="format"
+            title="格式化源 JSON"
+            :active="activeTool === 'source-format'"
+            @click="handleFormat('source')"
+          />
+          <IconButton
+            icon="minify"
+            title="压缩源 JSON"
+            :active="activeTool === 'source-minify'"
+            @click="handleMinify('source')"
+          />
+          <IconButton
+            icon="repair"
+            title="尝试修复源 JSON"
+            :active="activeTool === 'source-repair'"
+            @click="handleRepair('source')"
+          />
+          <IconButton
+            icon="clear"
+            title="清空源 JSON"
+            :active="activeTool === 'source-clear'"
+            @click="handleClear('source')"
+          />
         </div>
-        <div class="toolbar-divider" />
-        <div class="toolbar-section">
+        <div class="toolbar-divider" v-show="mode === 'diff'" />
+        <div class="toolbar-section" v-show="mode === 'diff'">
           <span class="section-label">目标</span>
-          <IconButton icon="import" title="导入目标 JSON 文件" @click="triggerImport('target')" />
-          <IconButton icon="export" title="导出目标 JSON 内容" @click="handleExport('target')" />
-          <IconButton icon="format" title="格式化目标 JSON" @click="handleFormat('target')" />
-          <IconButton icon="minify" title="压缩目标 JSON" @click="handleMinify('target')" />
-          <IconButton icon="repair" title="尝试修复目标 JSON" @click="handleRepair('target')" />
-          <IconButton icon="clear" title="清空目标 JSON" @click="handleClear('target')" />
+          <IconButton
+            icon="import"
+            title="导入目标 JSON 文件"
+            :active="activeTool === 'target-import'"
+            @click="triggerImport('target')"
+          />
+          <IconButton
+            icon="export"
+            title="导出目标 JSON 内容"
+            :active="activeTool === 'target-export'"
+            @click="handleExport('target')"
+          />
+          <IconButton
+            icon="format"
+            title="格式化目标 JSON"
+            :active="activeTool === 'target-format'"
+            @click="handleFormat('target')"
+          />
+          <IconButton
+            icon="minify"
+            title="压缩目标 JSON"
+            :active="activeTool === 'target-minify'"
+            @click="handleMinify('target')"
+          />
+          <IconButton
+            icon="repair"
+            title="尝试修复目标 JSON"
+            :active="activeTool === 'target-repair'"
+            @click="handleRepair('target')"
+          />
+          <IconButton
+            icon="clear"
+            title="清空目标 JSON"
+            :active="activeTool === 'target-clear'"
+            @click="handleClear('target')"
+          />
         </div>
       </aside>
 
-      <section class="workspace" :class="{ 'is-diff': diffMode }">
-      <template v-if="!diffMode">
-        <CodeEditor
-          v-model:value="state.source"
-          :theme="themeName"
-          language="json"
-          class="editor-pane"
-          :options="baseEditorOptions"
-        />
-        <CodeEditor
-          v-model:value="state.target"
-          :theme="themeName"
-          language="json"
-          class="editor-pane"
-          :options="baseEditorOptions"
-        />
-      </template>
+      <section class="workspace" :class="{ 'is-diff': mode === 'diff' }">
+        <template v-if="mode === 'format'">
+          <div class="editor-pane editor-pane--source text-input-pane">
+            <textarea v-model="state.source" placeholder="在此粘贴或输入 JSON 字符串"></textarea>
+          </div>
+          <CodeEditor
+            v-model:value="previewContent"
+            :theme="editorTheme"
+            language="json"
+            class="editor-pane editor-pane--target"
+            :options="previewEditorOptions"
+          />
+        </template>
 
-      <DiffEditor
-        v-else
-        :original="state.source"
-        :value="state.target"
-        :theme="themeName"
-        language="json"
-        class="editor-pane"
-        :options="diffEditorOptions"
-        @editorDidMount="handleDiffMount"
-        @update:value="state.target = $event"
-      />
-    </section>
+        <DiffEditor
+          v-else-if="mode === 'diff'"
+          :original="state.source"
+          :value="state.target"
+          :theme="editorTheme"
+          language="json"
+          class="editor-pane editor-pane--diff"
+          :options="diffEditorOptions"
+          @editorDidMount="handleDiffMount"
+          @update:value="state.target = $event"
+        />
+      </section>
     </div>
 
     <footer class="status-bar">
@@ -332,7 +521,7 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
       <div class="status-right">
         <span v-if="busyPanel" class="loading">处理中...</span>
         <span v-else-if="message" :class="['message', message.level]">{{ message.text }}</span>
-        <span v-else>准备就绪</span>
+        <span v-else aria-hidden="true"></span>
       </div>
     </footer>
 
@@ -358,49 +547,67 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: linear-gradient(160deg, #0f172a 0%, #0b1120 100%);
-  color: #e2e8f0;
+  background: linear-gradient(160deg, var(--app-gradient-start) 0%, var(--app-gradient-end) 100%);
+  color: var(--text-primary);
   overflow: hidden;
 }
 
 .top-bar {
   height: 40px;
+  padding: 0 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(15, 23, 42, 0.9);
-  backdrop-filter: blur(8px);
-  flex-shrink: 0;
-  gap: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-secondary);
 }
 
-.brand {
+.top-bar-right {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #38bdf8;
-  margin-left: 16px;
 }
 
-.top-bar-note {
-  margin-right: 16px;
-  font-size: 12px;
-  color: rgba(226, 232, 240, 0.68);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+.theme-toggle {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--border-button);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-strong);
 }
 
-.logo-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.45);
+.theme-toggle svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.theme-toggle:hover {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  box-shadow: var(--shadow-accent-medium);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+
+.logo {
+  width: 20px;
+  height: 20px;
 }
 
 .main-layout {
@@ -412,15 +619,15 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
 .side-toolbar {
   width: 40px;
   padding: 6px 4px;
-  background: rgba(15, 23, 42, 0.82);
-  border-right: 1px solid rgba(148, 163, 184, 0.16);
+  background: var(--surface-toolbar);
+  border-right: 1px solid var(--border-subtle);
   backdrop-filter: blur(10px);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
-  box-shadow: 8px 0 24px rgba(2, 6, 23, 0.32);
+  box-shadow: var(--shadow-toolbar);
 }
 
 .toolbar-section {
@@ -434,7 +641,7 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
 .toolbar-divider {
   width: 100%;
   height: 1px;
-  background: linear-gradient(90deg, rgba(148, 163, 184, 0.05), rgba(148, 163, 184, 0.24), rgba(148, 163, 184, 0.05));
+  background: linear-gradient(90deg, transparent, var(--border-subtle), transparent);
 }
 
 .section-label {
@@ -442,7 +649,7 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(226, 232, 240, 0.48);
+  color: var(--text-muted);
   writing-mode: vertical-rl;
   transform: rotate(180deg);
 }
@@ -459,9 +666,8 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
 
 .workspace {
   flex: 1;
-  flex: 1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 0.4fr 0.6fr;
   gap: 0;
   padding: 0;
   box-sizing: border-box;
@@ -477,11 +683,34 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
   min-width: 0;
   min-height: 0;
   height: 100%;
-  border: 1px solid rgba(100, 116, 139, 0.18);
-  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-primary);
   box-shadow: none;
   border-radius: 0;
   display: block;
+}
+
+.text-input-pane {
+  position: relative;
+}
+
+.text-input-pane textarea {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: '"Cascadia Code", "Fira Code", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace';
+  font-size: 14px;
+  line-height: 22px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.text-input-pane textarea::placeholder {
+  color: var(--text-muted);
 }
 
 .status-bar {
@@ -490,8 +719,8 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(15, 23, 42, 0.85);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-status);
   flex-shrink: 0;
 }
 
@@ -501,46 +730,46 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
   align-items: center;
   gap: 8px;
   font-size: 11px;
-  color: rgba(148, 163, 184, 0.85);
+  color: var(--text-muted);
 }
 
 .dot {
   width: 8px;
   height: 8px;
   border-radius: 8px;
-  background-color: rgba(148, 163, 184, 0.6);
-  box-shadow: 0 0 6px rgba(148, 163, 184, 0.4);
+  background-color: var(--status-neutral);
+  box-shadow: var(--status-neutral-shadow);
 }
 
 .dot.ok {
-  background-color: #16a34a;
-  box-shadow: 0 0 6px rgba(22, 163, 74, 0.6);
+  background-color: var(--status-ok);
+  box-shadow: var(--status-ok-shadow);
 }
 
 .dot.warn {
-  background-color: #f97316;
-  box-shadow: 0 0 6px rgba(249, 115, 22, 0.6);
+  background-color: var(--status-warn);
+  box-shadow: var(--status-warn-shadow);
 }
 
 .dot.error {
-  background-color: #ef4444;
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+  background-color: var(--status-error);
+  box-shadow: var(--status-error-shadow);
 }
 
 .loading {
-  color: #38bdf8;
+  color: var(--color-brand);
 }
 
 .message.success {
-  color: #4ade80;
+  color: #22c55e;
 }
 
 .message.error {
-  color: #f87171;
+  color: #ef4444;
 }
 
 .message.info {
-  color: #38bdf8;
+  color: var(--color-brand);
 }
 
 .hidden-input {
@@ -565,8 +794,8 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
     gap: 12px;
     padding: 4px 8px;
     border-right: none;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
-    box-shadow: 0 8px 24px rgba(2, 6, 23, 0.28);
+    border-bottom: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-toolbar-mobile);
     height: 40px;
   }
 
@@ -579,7 +808,7 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
   .toolbar-divider {
     width: 1px;
     height: 44px;
-    background: linear-gradient(180deg, rgba(148, 163, 184, 0.05), rgba(148, 163, 184, 0.24), rgba(148, 163, 184, 0.05));
+    background: linear-gradient(180deg, transparent, var(--border-subtle), transparent);
   }
 
   .section-label {
