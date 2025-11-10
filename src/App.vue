@@ -1,17 +1,23 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import CodeEditor, { DiffEditor, createDefaultOptions } from 'monaco-editor-vue3'
+import { createDefaultOptions } from 'monaco-editor-vue3'
 import type { editor as MonacoEditorNS } from 'monaco-editor'
 import * as monaco from 'monaco-editor'
 import { jsonrepair } from 'jsonrepair'
 import { create as createDiffer } from 'jsondiffpatch'
-import IconButton from './components/IconButton.vue'
-import Logo from '../src/assets/logo.svg'
+import TopBar from './components/TopBar.vue'
+import SideToolbar from './components/SideToolbar.vue'
+import FormatWorkspace from './components/FormatWorkspace.vue'
+import DiffWorkspace from './components/DiffWorkspace.vue'
+import StatusBar from './components/StatusBar.vue'
+import type {
+  PanelKey,
+  ToolAction,
+  MessageLevel,
+  ThemeMode,
+  DiffState
+} from './types/jsonTools'
 
-type PanelKey = 'source' | 'target'
-type MessageLevel = 'success' | 'error' | 'info'
-
-type ThemeMode = 'dark' | 'light'
 const THEME_STORAGE_KEY = 'byte-json-theme'
 const theme = ref<ThemeMode>('dark')
 const editorTheme = computed(() => `byte-json-${theme.value}`)
@@ -32,7 +38,6 @@ const state = reactive({
 })
 
 const mode = ref<'format' | 'diff'>('format')
-type ToolAction = `${PanelKey}-${'import' | 'export' | 'format' | 'minify' | 'repair' | 'clear'}`
 const activeTool = ref<ToolAction | null>(null)
 const busyPanel = ref<PanelKey | null>(null)
 const message = ref<{ level: MessageLevel; text: string } | null>(null)
@@ -194,7 +199,7 @@ watch(
   { immediate: true }
 )
 
-const diffState = computed(() => {
+const diffState = computed<DiffState>(() => {
   if (mode.value === 'format') {
     return previewIsValid.value
       ? {
@@ -355,220 +360,52 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
 
 <template>
   <div class="app">
-    <header class="top-bar">
-        <img class="logo" :src="Logo" alt="">
-      <div class="top-bar-right">
-        <button
-          type="button"
-          class="theme-toggle"
-          :title="themeToggleTitle"
-          :aria-label="themeToggleTitle"
-          @click="toggleTheme"
-        >
-          <svg v-if="isDarkTheme" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path
-              d="M20 15.5A8 8 0 1 1 12.5 4c-.33.75-.5 1.57-.5 2.41A6.09 6.09 0 0 0 18.09 12c.84 0 1.66-.17 2.41-.5z"
-            />
-          </svg>
-          <svg v-else viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <circle cx="12" cy="12" r="4.5" />
-            <line x1="12" y1="2.5" x2="12" y2="5" />
-            <line x1="12" y1="19" x2="12" y2="21.5" />
-            <line x1="4.5" y1="12" x2="7" y2="12" />
-            <line x1="17" y1="12" x2="19.5" y2="12" />
-            <line x1="5.8" y1="5.8" x2="7.6" y2="7.6" />
-            <line x1="16.4" y1="16.4" x2="18.2" y2="18.2" />
-            <line x1="5.8" y1="18.2" x2="7.6" y2="16.4" />
-            <line x1="16.4" y1="7.6" x2="18.2" y2="5.8" />
-          </svg>
-        </button>
-      </div>
-    </header>
+    <TopBar
+      :mode="mode"
+      :active-tool="activeTool"
+      @trigger-import="triggerImport"
+      @export="handleExport"
+      @format="handleFormat"
+      @minify="handleMinify"
+      @repair="handleRepair"
+      @clear="handleClear"
+    />
 
     <div class="main-layout">
-      <aside class="side-toolbar">
-        <div class="toolbar-section toolbar-section--mode">
-          <IconButton
-            icon="format"
-            :variant="mode === 'format' ? 'primary' : 'ghost'"
-            :active="mode === 'format'"
-            title="JSON 预览模式"
-            @click="mode = 'format'"
-          />
-          <IconButton
-            icon="diff"
-            :variant="mode === 'diff' ? 'primary' : 'ghost'"
-            :active="mode === 'diff'"
-            title="对比"
-            @click="mode = 'diff'"
-          />
-        </div>
-      </aside>
+      <SideToolbar
+        :mode="mode"
+        :theme-toggle-title="themeToggleTitle"
+        :is-dark-theme="isDarkTheme"
+        @update:mode="mode = $event"
+        @toggleTheme="toggleTheme"
+      />
 
       <section class="workspace" :class="{ 'is-diff': mode === 'diff' }">
-        <template v-if="mode === 'format'">
-          <div class="editor-pane editor-pane--source text-input-pane">
-            <textarea v-model="state.source" placeholder="在此粘贴或输入 JSON 字符串"></textarea>
-          </div>
-          <div class="editor-pane editor-pane--target">
-            <div class="pane-header">
-              <div class="pane-actions">
-                <IconButton
-                  icon="import"
-                  title="导入"
-                  :active="activeTool === 'source-import'"
-                  @click="triggerImport('source')"
-                />
-                <IconButton
-                  icon="export"
-                  title="导出"
-                  :active="activeTool === 'source-export'"
-                  @click="handleExport('source')"
-                />
-                <IconButton
-                  icon="format"
-                  title="格式化"
-                  :active="activeTool === 'source-format'"
-                  @click="handleFormat('source')"
-                />
-                <IconButton
-                  icon="minify"
-                  title="压缩"
-                  :active="activeTool === 'source-minify'"
-                  @click="handleMinify('source')"
-                />
-                <IconButton
-                  icon="repair"
-                  title="尝试修复"
-                  :active="activeTool === 'source-repair'"
-                  @click="handleRepair('source')"
-                />
-                <IconButton
-                  icon="clear"
-                  title="清空"
-                  :active="activeTool === 'source-clear'"
-                  @click="handleClear('source')"
-                />
-              </div>
-            </div>
-            <CodeEditor
-              v-model:value="previewContent"
-              :theme="editorTheme"
-              language="json"
-              class="pane-body"
-              :options="previewEditorOptions"
-            />
-          </div>
-        </template>
-
-        <div v-else-if="mode === 'diff'" class="editor-pane editor-pane--diff">
-          <div class="pane-header pane-header--dual">
-            <div class="pane-group">
-              <div class="pane-actions">
-                <IconButton
-                  icon="import"
-                  title="导入"
-                  :active="activeTool === 'source-import'"
-                  @click="triggerImport('source')"
-                />
-                <IconButton
-                  icon="export"
-                  title="导出"
-                  :active="activeTool === 'source-export'"
-                  @click="handleExport('source')"
-                />
-                <IconButton
-                  icon="format"
-                  title="格式化"
-                  :active="activeTool === 'source-format'"
-                  @click="handleFormat('source')"
-                />
-                <IconButton
-                  icon="minify"
-                  title="压缩"
-                  :active="activeTool === 'source-minify'"
-                  @click="handleMinify('source')"
-                />
-                <IconButton
-                  icon="repair"
-                  title="尝试修复"
-                  :active="activeTool === 'source-repair'"
-                  @click="handleRepair('source')"
-                />
-                <IconButton
-                  icon="clear"
-                  title="清空"
-                  :active="activeTool === 'source-clear'"
-                  @click="handleClear('source')"
-                />
-              </div>
-            </div>
-            <div class="pane-group">
-              <div class="pane-actions">
-                <IconButton
-                  icon="import"
-                  title="导入"
-                  :active="activeTool === 'target-import'"
-                  @click="triggerImport('target')"
-                />
-                <IconButton
-                  icon="export"
-                  title="导出"
-                  :active="activeTool === 'target-export'"
-                  @click="handleExport('target')"
-                />
-                <IconButton
-                  icon="format"
-                  title="格式化"
-                  :active="activeTool === 'target-format'"
-                  @click="handleFormat('target')"
-                />
-                <IconButton
-                  icon="minify"
-                  title="压缩"
-                  :active="activeTool === 'target-minify'"
-                  @click="handleMinify('target')"
-                />
-                <IconButton
-                  icon="repair"
-                  title="尝试修复"
-                  :active="activeTool === 'target-repair'"
-                  @click="handleRepair('target')"
-                />
-                <IconButton
-                  icon="clear"
-                  title="清空"
-                  :active="activeTool === 'target-clear'"
-                  @click="handleClear('target')"
-                />
-              </div>
-            </div>
-          </div>
-          <DiffEditor
-            :original="state.source"
-            :value="state.target"
-            :theme="editorTheme"
-            language="json"
-            class="pane-body diff-body"
-            :options="diffEditorOptions"
-            @editorDidMount="handleDiffMount"
-            @update:value="state.target = $event"
-          />
-        </div>
+        <FormatWorkspace
+          v-if="mode === 'format'"
+          :source="state.source"
+          :preview-content="previewContent"
+          :editor-theme="editorTheme"
+          :preview-editor-options="previewEditorOptions"
+          @update:source="state.source = $event"
+        />
+        <DiffWorkspace
+          v-else
+          :source="state.source"
+          :target="state.target"
+          :editor-theme="editorTheme"
+          :diff-editor-options="diffEditorOptions"
+          @mount="handleDiffMount"
+          @update:target="state.target = $event"
+        />
       </section>
     </div>
 
-    <footer class="status-bar">
-      <div class="status-left">
-        <span class="dot" :class="diffState.ok ? (diffState.hasDiff ? 'warn' : 'ok') : 'error'" />
-        <span>{{ diffState.message }}</span>
-      </div>
-      <div class="status-right">
-        <span v-if="busyPanel" class="loading">处理中...</span>
-        <span v-else-if="message" :class="['message', message.level]">{{ message.text }}</span>
-        <span v-else aria-hidden="true"></span>
-      </div>
-    </footer>
+    <StatusBar
+      :diff-state="diffState"
+      :busy-panel="busyPanel"
+      :message="message"
+    />
 
     <input
       ref="sourceInput"
@@ -589,6 +426,7 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
 
 <style scoped>
 .app {
+  --sidebar-width: 40px;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -597,100 +435,10 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
   overflow: hidden;
 }
 
-.top-bar {
-  height: 40px;
-  padding: 0 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--surface-secondary);
-}
-
-.top-bar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.theme-toggle {
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  border: 1px solid var(--border-button);
-  background: var(--surface-card);
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: var(--shadow-strong);
-}
-
-.theme-toggle svg {
-  width: 18px;
-  height: 18px;
-  stroke: currentColor;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-}
-
-.theme-toggle:hover {
-  border-color: var(--color-brand);
-  color: var(--color-brand);
-  box-shadow: var(--shadow-accent-medium);
-}
-
-.theme-toggle:focus-visible {
-  outline: 2px solid var(--color-brand);
-  outline-offset: 3px;
-}
-
-
-.logo {
-  width: 20px;
-  height: 20px;
-}
-
 .main-layout {
   flex: 1;
   display: flex;
   min-height: 0;
-}
-
-.side-toolbar {
-  width: 40px;
-  padding: 6px 4px;
-  background: var(--surface-toolbar);
-  border-right: 1px solid var(--border-subtle);
-  backdrop-filter: blur(10px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  box-shadow: var(--shadow-toolbar);
-}
-
-.toolbar-section {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.side-toolbar :deep(.icon-button) {
-  width: 28px;
-  height: 28px;
-  border-radius: 10px;
-}
-
-.side-toolbar :deep(.icon-button:not(:last-child)) {
-  margin-bottom: 4px;
 }
 
 .workspace {
@@ -708,146 +456,6 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
   grid-template-columns: 1fr;
 }
 
-.editor-pane {
-  min-width: 0;
-  min-height: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: var(--surface-primary);
-  border-radius: 0;
-}
-
-.editor-pane:not(.editor-pane--source) {
-  border: 1px solid var(--border-strong);
-  box-shadow: none;
-}
-
-.text-input-pane {
-  position: relative;
-  border: 1px solid var(--border-strong);
-}
-
-.text-input-pane textarea {
-  width: 100%;
-  height: 100%;
-  border: none;
-  outline: none;
-  resize: none;
-  background: transparent;
-  color: var(--text-primary);
-  font-family: '"Cascadia Code", "Fira Code", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace';
-  font-size: 14px;
-  line-height: 22px;
-  padding: 16px;
-  box-sizing: border-box;
-}
-
-.text-input-pane textarea::placeholder {
-  color: var(--text-muted);
-}
-
-.pane-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: var(--surface-secondary);
-  border-bottom: 1px solid var(--border-subtle);
-  gap: 12px;
-}
-
-.pane-header--dual {
-  gap: 24px;
-}
-
-.pane-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.pane-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pane-body {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-}
-
-.pane-body :deep(.monaco-editor),
-.pane-body :deep(.monaco-editor-vue3) {
-  height: 100%;
-}
-
-.diff-body {
-  border: none;
-}
-
-.status-bar {
-  height: 30px;
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--surface-status);
-  flex-shrink: 0;
-}
-
-.status-left,
-.status-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 8px;
-  background-color: var(--status-neutral);
-  box-shadow: var(--status-neutral-shadow);
-}
-
-.dot.ok {
-  background-color: var(--status-ok);
-  box-shadow: var(--status-ok-shadow);
-}
-
-.dot.warn {
-  background-color: var(--status-warn);
-  box-shadow: var(--status-warn-shadow);
-}
-
-.dot.error {
-  background-color: var(--status-error);
-  box-shadow: var(--status-error-shadow);
-}
-
-.loading {
-  color: var(--color-brand);
-}
-
-.message.success {
-  color: #22c55e;
-}
-
-.message.error {
-  color: #ef4444;
-}
-
-.message.info {
-  color: var(--color-brand);
-}
-
 .hidden-input {
   display: none;
 }
@@ -861,46 +469,6 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
 @media (max-width: 960px) {
   .main-layout {
     flex-direction: column;
-  }
-
-  .side-toolbar {
-    width: 100%;
-    flex-direction: row;
-    justify-content: center;
-    gap: 12px;
-    padding: 4px 8px;
-    border-right: none;
-    border-bottom: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-toolbar-mobile);
-    height: 40px;
-  }
-
-  .toolbar-section {
-    flex-direction: row;
-    gap: 8px;
-    justify-content: center;
-  }
-
-  .toolbar-divider {
-    width: 1px;
-    height: 44px;
-    background: linear-gradient(180deg, transparent, var(--border-subtle), transparent);
-  }
-
-  .section-label {
-    writing-mode: initial;
-    transform: none;
-    letter-spacing: 0.16em;
-    margin-right: 6px;
-  }
-
-  .side-toolbar :deep(.icon-button) {
-    width: 28px;
-    height: 28px;
-  }
-
-  .side-toolbar :deep(.icon-button:not(:last-child)) {
-    margin-bottom: 0;
   }
 }
 </style>
