@@ -12,6 +12,7 @@ const emit = defineEmits<{
   (e: 'update:mode', mode: 'format' | 'diff'): void
   (e: 'toggleTheme'): void
   (e: 'openCacheManager'): void
+  (e: 'openAbout'): void
 }>()
 
 const isFormatMode = computed(() => props.mode === 'format')
@@ -21,33 +22,41 @@ const themeIcon = computed(() => (props.isDarkTheme ? 'moon' : 'sun'))
 <template>
   <aside class="side-toolbar">
     <div class="toolbar-section">
-      <div class="mode-switch">
+      <div class="primary-group">
+        <div class="mode-switch">
+          <IconButton
+            icon="format"
+            :active="isFormatMode"
+            title="JSON 预览模式"
+            @click="emit('update:mode', 'format')"
+          />
+          <IconButton
+            icon="diff"
+            :active="!isFormatMode"
+            title="对比"
+            @click="emit('update:mode', 'diff')"
+          />
+        </div>
+
         <IconButton
-          icon="format"
-          :active="isFormatMode"
-          title="JSON 预览模式"
-          @click="emit('update:mode', 'format')"
-        />
-        <IconButton
-          icon="diff"
-          :active="!isFormatMode"
-          title="对比"
-          @click="emit('update:mode', 'diff')"
-        />
-        <IconButton
-            icon="storage"
-            title="缓存管理"
-            @click="emit('openCacheManager')"
+          icon="storage"
+          title="缓存管理"
+          @click="emit('openCacheManager')"
         />
       </div>
 
-
-
-      <IconButton
-        :icon="themeIcon"
-        :title="themeToggleTitle"
-        @click="emit('toggleTheme')"
-      />
+      <div class="utility-group">
+        <IconButton
+          icon="info"
+          title="了解 Byte JSON"
+          @click="emit('openAbout')"
+        />
+        <IconButton
+          :icon="themeIcon"
+          :title="themeToggleTitle"
+          @click="emit('toggleTheme')"
+        />
+      </div>
     </div>
   </aside>
 </template>
@@ -72,6 +81,15 @@ const themeIcon = computed(() => (props.isDarkTheme ? 'moon' : 'sun'))
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
+    gap: 20px;
+    padding: 4px 0;
+  }
+
+  .primary-group,
+  .utility-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     gap: 12px;
   }
 
@@ -86,18 +104,26 @@ const themeIcon = computed(() => (props.isDarkTheme ? 'moon' : 'sun'))
 @media (max-width: 960px) {
   .side-toolbar {
     width: 100%;
-    height: 40px;
+    height: 52px;
     flex-direction: row;
     justify-content: center;
     gap: 12px;
-    padding: 4px 8px;
+    padding: 6px 12px;
     border-right: none;
     border-bottom: 1px solid var(--border-subtle);
 
     .toolbar-section {
       flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      gap: 16px;
+    }
+
+    .primary-group,
+    .utility-group {
+      flex-direction: row;
       gap: 12px;
-      justify-content: center;
     }
 
     .mode-switch {
