@@ -1,10 +1,26 @@
+[data-theme='light'] .app-button--secondary {
+  background: #ffffff;
+  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 8px 16px rgba(148, 163, 184, 0.18);
+
+  &:hover {
+    background: rgba(248, 250, 252, 0.92);
+    border-color: rgba(79, 70, 229, 0.35);
+    box-shadow: 0 12px 20px rgba(148, 163, 184, 0.22);
+  }
+}
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import Logo from '../assets/logo.svg'
 import { useTheme } from '../composables/useTheme'
+import SunIcon from '../assets/icons/sun.svg'
+import MoonIcon from '../assets/icons/moon.svg'
+import SunSolidIcon from '../assets/icons/sun-solid.svg'
 
 const router = useRouter()
 const { isDarkTheme, toggleTheme, themeToggleTitle } = useTheme()
+const themeToggleIcon = computed(() => (isDarkTheme.value ? SunSolidIcon : MoonIcon))
 
 const featureCards = [
   {
@@ -63,9 +79,9 @@ function goWorkspace() {
           :aria-label="themeToggleTitle"
           @click="toggleTheme"
         >
-          <span class="theme-toggle__icon" :class="{ 'is-dark': isDarkTheme }" />
+          <img class="theme-toggle__icon" :src="themeToggleIcon" :alt="themeToggleTitle" />
         </button>
-        <button class="cta-button" type="button" @click="goWorkspace">
+        <button class="app-button app-button--primary" type="button" @click="goWorkspace">
           立即体验
         </button>
       </div>
@@ -80,16 +96,16 @@ function goWorkspace() {
             在这里，复杂的 JSON 操作变得流畅而优雅。
           </p>
           <div class="hero__actions">
-            <button class="primary-button" type="button" @click="goWorkspace">
+            <button class="app-button app-button--primary" type="button" @click="goWorkspace">
               立即体验
             </button>
             <a
-              class="secondary-link"
+              class="app-button app-button--secondary"
               href="https://github.com/antfl"
               target="_blank"
               rel="noopener"
             >
-              查看项目路线图
+              访问 Github
             </a>
           </div>
         </div>
@@ -148,7 +164,6 @@ function goWorkspace() {
           <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">工信部备案查询</a>
         </div>
       </div>
-      <button class="cta-link" type="button" @click="goWorkspace">立即体验</button>
     </footer>
   </div>
 </template>
@@ -159,7 +174,7 @@ function goWorkspace() {
   max-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 40px clamp(24px, 4vw, 64px);
+  padding: 40px clamp(24px, 4vw, 64px) 0;
   color: var(--text-primary);
   background: radial-gradient(120% 140% at 10% 10%, rgba(77, 107, 255, 0.32), transparent),
     radial-gradient(120% 140% at 90% 20%, rgba(16, 185, 129, 0.24), transparent),
@@ -180,34 +195,33 @@ function goWorkspace() {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 22px;
-  font-weight: 600;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 500;
 
   &__logo-wrapper {
-    width: 40px;
-    height: 40px;
+    width: 68px;
+    height: 68px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 12px;
-    background: rgba(148, 163, 184, 0.18);
-    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.22);
   }
 
   &__logo {
-    width: 26px;
-    height: 26px;
+    width: 48px;
+    height: 48px;
   }
 
   &__mark {
-    padding: 6px 12px;
-    border-radius: 12px;
+    padding: 4px 10px;
+    border-radius: 8px;
     background: rgba(77, 107, 255, 0.16);
     backdrop-filter: blur(8px);
+    font-size: 15px;
   }
 
   &__name {
+    font-size: 13px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
   }
@@ -228,7 +242,7 @@ function goWorkspace() {
   border: 1px solid var(--border-subtle);
   border-radius: 999px;
   background: var(--surface-secondary);
-  color: inherit;
+  color: var(--text-primary);
   cursor: pointer;
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 
@@ -239,49 +253,60 @@ function goWorkspace() {
 }
 
 .theme-toggle__icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #facc15, #f97316);
-  position: relative;
-  transition: all 0.26s ease;
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 4px;
-    border-radius: 50%;
-    background: #0f172a;
-    opacity: 0;
-    transform: scale(0.6);
-    transition: all 0.26s ease;
-  }
-
-  &.is-dark::after {
-    opacity: 1;
-    transform: scale(1);
-  }
+  width: 22px;
+  height: 22px;
+  transition: transform 0.2s ease;
 }
 
-.cta-button,
-.primary-button {
+.theme-toggle:hover .theme-toggle__icon {
+  transform: rotate(10deg) scale(1.05);
+}
+
+[data-theme='dark'] .theme-toggle {
+  color: #f8fafc;
+}
+
+[data-theme='light'] .theme-toggle {
+  color: #1f2937;
+}
+
+.app-button {
   padding: 10px 24px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #4d6bff, #6f8dff);
-  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid transparent;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease,
+    border-color 0.18s ease;
+  text-decoration: none;
+}
+
+.app-button--primary {
+  background: linear-gradient(135deg, #4d6bff, #6f8dff);
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(77, 107, 255, 0.3);
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 10px 25px rgba(77, 107, 255, 0.35);
+    box-shadow: 0 16px 32px rgba(77, 107, 255, 0.38);
   }
 }
 
-.cta-button {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
+.app-button--secondary {
+  background: #ffffff;
+  border-color: rgba(99, 102, 241, 0.4);
+  color: var(--color-brand);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.14);
+
+  &:hover {
+    transform: translateY(-1px);
+    background: #f8fafc;
+    border-color: rgba(79, 70, 229, 0.45);
+    box-shadow: 0 14px 26px rgba(15, 23, 42, 0.18);
+  }
 }
 
 .about-content {
@@ -302,6 +327,7 @@ function goWorkspace() {
   font-size: clamp(32px, 6vw, 48px);
   margin-bottom: 16px;
   line-height: 1.15;
+  font-weight: 500;
 }
 
 .hero__text p {
@@ -316,31 +342,6 @@ function goWorkspace() {
   flex-wrap: wrap;
   align-items: center;
   gap: 18px;
-}
-
-.secondary-link {
-  color: var(--color-brand);
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  position: relative;
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: -4px;
-    width: 100%;
-    height: 1px;
-    background: currentColor;
-    opacity: 0.4;
-    transition: opacity 0.2s ease;
-  }
-
-  &:hover::after {
-    opacity: 1;
-  }
 }
 
 .hero__preview {
@@ -445,6 +446,7 @@ function goWorkspace() {
 .features h2,
 .highlights h2 {
   font-size: clamp(24px, 5vw, 32px);
+  font-weight: 500;
 }
 
 .feature-grid {
@@ -516,15 +518,19 @@ function goWorkspace() {
 }
 
 .about-footer {
-  margin-top: clamp(48px, 8vw, 72px);
-  padding-top: 24px;
-  border-top: 1px solid var(--border-subtle);
+  margin: clamp(40px, 8vw, 72px) calc(-1 * clamp(24px, 4vw, 64px)) 0;
+  padding: 28px clamp(24px, 4vw, 64px);
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
   align-items: center;
   justify-content: space-between;
   color: var(--text-muted);
+  background: var(--surface-primary);
+}
+
+[data-theme='light'] .about-footer {
+  background: rgba(248, 250, 252, 0.92);
 }
 
 .footer-info {
@@ -557,34 +563,9 @@ function goWorkspace() {
   color: rgba(148, 163, 184, 0.6);
 }
 
-.cta-link {
-  border: none;
-  background: transparent;
-  color: var(--color-brand);
-  font-weight: 600;
-  cursor: pointer;
-  position: relative;
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: auto 0 -3px 0;
-    height: 2px;
-    background: currentColor;
-    opacity: 0;
-    transform: scaleX(0.7);
-    transition: transform 0.2s ease, opacity 0.2s ease;
-  }
-
-  &:hover::after {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-}
-
 @media (max-width: 960px) {
   .about-page {
-    padding: 28px 20px 40px;
+    padding: 28px 20px 0;
   }
 
   .about-header {
@@ -612,7 +593,7 @@ function goWorkspace() {
     align-items: stretch;
   }
 
-  .cta-button {
+  .header-actions .app-button {
     width: 100%;
     justify-content: center;
   }
@@ -626,8 +607,7 @@ function goWorkspace() {
     align-items: stretch;
   }
 
-  .primary-button,
-  .secondary-link {
+  .hero__actions .app-button {
     width: 100%;
     text-align: center;
     justify-content: center;
