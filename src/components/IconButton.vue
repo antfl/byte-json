@@ -12,6 +12,16 @@ type IconButtonIcon =
 
 export type { IconButtonIcon }
 
+import clearIcon from '../assets/icons/clear.svg?raw'
+import diffIcon from '../assets/icons/diff.svg?raw'
+import exportIcon from '../assets/icons/export.svg?raw'
+import formatIcon from '../assets/icons/format.svg?raw'
+import importIcon from '../assets/icons/import.svg?raw'
+import minifyIcon from '../assets/icons/minify.svg?raw'
+import moonIcon from '../assets/icons/moon.svg?raw'
+import repairIcon from '../assets/icons/repair.svg?raw'
+import sunIcon from '../assets/icons/sun.svg?raw'
+
 const props = withDefaults(
   defineProps<{
     icon: IconButtonIcon
@@ -29,6 +39,18 @@ const emit = defineEmits<{
   (event: 'click'): void
 }>()
 
+const ICON_MAP: Record<IconButtonIcon, string> = {
+  clear: clearIcon,
+  diff: diffIcon,
+  export: exportIcon,
+  format: formatIcon,
+  import: importIcon,
+  minify: minifyIcon,
+  moon: moonIcon,
+  repair: repairIcon,
+  sun: sunIcon
+}
+
 const handleClick = () => {
   emit('click')
 }
@@ -42,9 +64,7 @@ const handleClick = () => {
     :aria-label="props.title"
     @click="handleClick"
   >
-    <svg class="icon-button__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <use :href="`#icon-${props.icon}`" :xlink:href="`#icon-${props.icon}`" />
-    </svg>
+    <span class="icon-button__icon" aria-hidden="true" v-html="ICON_MAP[props.icon]" />
   </button>
 </template>
 
@@ -64,15 +84,17 @@ const handleClick = () => {
 }
 
 .icon-button__icon {
-  width: 24px;
-  height: 24px;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-  transform: scale(1.5);
-  transform-origin: center;
+  width: 100%;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button__icon :deep(svg) {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .icon-button--ghost {
