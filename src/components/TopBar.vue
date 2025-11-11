@@ -4,8 +4,8 @@ import type { IconButtonIcon } from './IconButton.vue'
 import Logo from '../assets/logo.svg'
 import type { PanelKey, ToolAction } from '../types/jsonTools'
 
-type ActionKey = 'import' | 'export' | 'format' | 'minify' | 'repair' | 'clear'
-type ActionIcon = Extract<IconButtonIcon, 'import' | 'export' | 'format' | 'minify' | 'repair' | 'clear'>
+type ActionKey = 'import' | 'save' | 'export' | 'format' | 'minify' | 'repair' | 'clear'
+type ActionIcon = Extract<IconButtonIcon, 'import' | 'save' | 'export' | 'format' | 'minify' | 'repair' | 'clear'>
 
 const props = defineProps<{
   mode: 'format' | 'diff'
@@ -14,6 +14,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'triggerImport', panel: PanelKey): void
+  (e: 'save', panel: PanelKey): void
   (e: 'export', panel: PanelKey): void
   (e: 'format', panel: PanelKey): void
   (e: 'minify', panel: PanelKey): void
@@ -27,6 +28,7 @@ const ACTION_ITEMS: Array<{
   title: string
 }> = [
   { key: 'import', icon: 'import', title: '导入' },
+  { key: 'save', icon: 'save', title: '存储到缓存' },
   { key: 'export', icon: 'export', title: '导出' },
   { key: 'format', icon: 'format', title: '格式化' },
   { key: 'minify', icon: 'minify', title: '压缩' },
@@ -41,6 +43,9 @@ function handleAction(action: ActionKey, panel: PanelKey) {
       break
     case 'export':
       emit('export', panel)
+      break
+    case 'save':
+      emit('save', panel)
       break
     case 'format':
       emit('format', panel)

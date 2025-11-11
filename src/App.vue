@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { createDefaultOptions } from 'monaco-editor-vue3'
 import type { editor as MonacoEditorNS } from 'monaco-editor'
 import * as monaco from 'monaco-editor'
@@ -10,6 +10,11 @@ import SideToolbar from './components/SideToolbar.vue'
 import FormatWorkspace from './components/FormatWorkspace.vue'
 import DiffWorkspace from './components/DiffWorkspace.vue'
 import StatusBar from './components/StatusBar.vue'
+import StorageDialog from './components/modals/StorageDialog.vue'
+import ImportOptionsModal from './components/modals/ImportOptionsModal.vue'
+import CachePickerModal from './components/modals/CachePickerModal.vue'
+import { deleteSnippet, getSnippet, listSnippets, saveSnippet } from './services/storageStore'
+import type { StoredSnippet } from './services/storageStore'
 import type {
   PanelKey,
   ToolAction,
@@ -49,6 +54,26 @@ const targetInput = ref<HTMLInputElement | null>(null)
 const previewContent = ref('')
 const previewIsValid = ref(true)
 
+const storageDialog = reactive({
+  visible: false,
+  panel: 'source' as PanelKey,
+  loading: false,
+  title: '',
+  size: 0
+})
+
+const importOptions = reactive({
+  visible: false,
+  panel: 'source' as PanelKey
+})
+
+const cachePicker = reactive({
+  visible: false,
+  panel: 'source' as PanelKey,
+  loading: false,
+  items: [] as StoredSnippet[]
+})
+
 const baseEditorOptions = createDefaultOptions('json')
 Object.assign(baseEditorOptions, {
   automaticLayout: true,
@@ -77,6 +102,41 @@ const diffEditorOptions: MonacoEditorNS.IStandaloneDiffEditorConstructionOptions
   originalEditable: true,
   diffAlgorithm: 'advanced',
   readOnly: false
+}
+
+function estimateContentSize(content: string): number {
+  if (typeof TextEncoder !== 'undefined') {
+    return new TextEncoder().encode(content).length
+  }
+  return content.length
+}
+
+function createSuggestedTitle(panel: PanelKey): string {
+  const prefix = panel === 'source' ? '源面板' : '目标面板'
+  const now = new Date()
+  const compact = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(
+    now.getDate()
+  ).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(
+    now.getMinutes()
+  ).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`
+  return `${prefix}-${compact}`
+}
+
+async function refreshCacheItems(showError = true) {
+  cachePicker.loading = true
+  let success = true
+  try {
+    cachePicker.items = await listSnippets()
+  } catch (error) {
+    success = false
+    if (showError) {
+      const message = error instanceof Error ? error.message : '读取缓存失败'
+      showMessage('error', message)
+    }
+  } finally {
+    cachePicker.loading = false
+  }
+  return success
 }
 
 function applyTheme(mode: ThemeMode) {
@@ -199,6 +259,16 @@ watch(
   { immediate: true }
 )
 
+watch(
+  [() => storageDialog.visible, () => storageDialog.panel, () => state.source, () => state.target],
+  () => {
+    if (!storageDialog.visible) {
+      return
+    }
+    storageDialog.size = estimateContentSize(state[storageDialog.panel])
+  }
+)
+
 const diffState = computed<DiffState>(() => {
   if (mode.value === 'format') {
     return previewIsValid.value
@@ -285,10 +355,102 @@ function handleRepair(panel: PanelKey) {
   }
 }
 
+function handleSave(panel: PanelKey) {
+  storageDialog.panel = panel
+  storageDialog.title = createSuggestedTitle(panel)
+  storageDialog.size = estimateContentSize(state[panel])
+  storageDialog.visible = true
+}
+
+async function handleConfirmSave(title: string) {
+  if (!storageDialog.visible || storageDialog.loading) {
+    return
+  }
+  const panel = storageDialog.panel
+  const content = state[panel]
+  storageDialog.loading = true
+  try {
+    await saveSnippet(panel, title, content)
+    showMessage('success', '内容已保存到缓存')
+    activeTool.value = `${panel}-save`
+    storageDialog.visible = false
+    if (cachePicker.visible) {
+      await refreshCacheItems(false)
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '保存失败，请重试'
+    showMessage('error', message)
+  } finally {
+    storageDialog.loading = false
+  }
+}
+
+function handleCancelSave() {
+  if (storageDialog.loading) {
+    return
+  }
+  storageDialog.visible = false
+}
+
 function triggerImport(panel: PanelKey) {
+  importOptions.panel = panel
+  importOptions.visible = true
+}
+
+function startFileImport(panel: PanelKey) {
   const input = panel === 'source' ? sourceInput.value : targetInput.value
   input?.click()
   activeTool.value = `${panel}-import`
+  importOptions.visible = false
+}
+
+async function openCachePicker(panel: PanelKey) {
+  cachePicker.panel = panel
+  cachePicker.visible = true
+  importOptions.visible = false
+  const success = await refreshCacheItems()
+  if (!success) {
+    cachePicker.visible = false
+  }
+}
+
+function handleCloseCachePicker() {
+  if (cachePicker.loading) {
+    return
+  }
+  cachePicker.visible = false
+}
+
+async function handleSelectCacheSnippet(id: string) {
+  try {
+    const snippet = await getSnippet(id)
+    if (!snippet) {
+      showMessage('error', '未找到对应的缓存记录')
+      await refreshCacheItems()
+      return
+    }
+    state[cachePicker.panel] = snippet.content
+    activeTool.value = `${cachePicker.panel}-import`
+    showMessage('success', `已从缓存加载：${snippet.title}`)
+    cachePicker.visible = false
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '读取缓存失败'
+    showMessage('error', message)
+  }
+}
+
+async function handleDeleteCacheSnippet(id: string) {
+  try {
+    await deleteSnippet(id)
+    cachePicker.items = cachePicker.items.filter((item) => item.id !== id)
+    showMessage('success', '缓存已删除')
+    if (!cachePicker.items.length) {
+      await refreshCacheItems(false)
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '删除缓存失败'
+    showMessage('error', message)
+  }
 }
 
 function handleImport(panel: PanelKey, event: Event) {
@@ -390,6 +552,7 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
       :mode="mode"
       :active-tool="activeTool"
       @trigger-import="triggerImport"
+      @save="handleSave"
       @export="handleExport"
       @format="handleFormat"
       @minify="handleMinify"
@@ -446,6 +609,39 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
       accept=".json,application/json,.txt"
       class="hidden-input"
       @change="handleImport('target', $event)"
+    />
+
+    <StorageDialog
+      v-if="storageDialog.visible"
+      :visible="storageDialog.visible"
+      :panel="storageDialog.panel"
+      :initial-title="storageDialog.title"
+      :size="storageDialog.size"
+      :content="state[storageDialog.panel]"
+      :loading="storageDialog.loading"
+      @cancel="handleCancelSave"
+      @confirm="handleConfirmSave"
+    />
+
+    <ImportOptionsModal
+      v-if="importOptions.visible"
+      :visible="importOptions.visible"
+      :panel="importOptions.panel"
+      @close="importOptions.visible = false"
+      @select-file="startFileImport(importOptions.panel)"
+      @select-cache="openCachePicker(importOptions.panel)"
+    />
+
+    <CachePickerModal
+      v-if="cachePicker.visible"
+      :visible="cachePicker.visible"
+      :panel="cachePicker.panel"
+      :loading="cachePicker.loading"
+      :items="cachePicker.items"
+      @close="handleCloseCachePicker"
+      @select="handleSelectCacheSnippet"
+      @delete="handleDeleteCacheSnippet"
+      @refresh="refreshCacheItems()"
     />
   </div>
 </template>
