@@ -450,50 +450,48 @@ function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="less">
 .app {
   --sidebar-width: 40px;
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: linear-gradient(160deg, var(--app-gradient-start) 0%, var(--app-gradient-end) 100%);
   color: var(--text-primary);
+  background: linear-gradient(160deg, var(--app-gradient-start) 0%, var(--app-gradient-end) 100%);
   overflow: hidden;
-}
 
-.main-layout {
-  flex: 1;
-  display: flex;
-  min-height: 0;
-}
+  .main-layout {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
 
-.workspace {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 0.4fr 0.6fr;
-  gap: 0;
-  padding: 0;
-  box-sizing: border-box;
-  min-height: 0;
-  overflow: hidden;
-}
+  .workspace {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 0.4fr 0.6fr;
+    gap: 0;
+    min-height: 0;
+    overflow: hidden;
 
-.workspace.is-diff {
-  grid-template-columns: 1fr;
-}
+    &.is-diff {
+      grid-template-columns: 1fr;
+    }
+  }
 
-.hidden-input {
-  display: none;
+  .hidden-input {
+    display: none;
+  }
 }
 
 @media (max-width: 1280px) {
-  .workspace {
+  .app .workspace {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 960px) {
-  .main-layout {
+  .app .main-layout {
     flex-direction: column;
   }
 }

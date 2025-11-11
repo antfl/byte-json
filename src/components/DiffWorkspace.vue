@@ -34,7 +34,7 @@ function handleEditorDidMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="less">
 .editor-pane {
   min-width: 0;
   min-height: 0;
@@ -42,19 +42,17 @@ function handleEditorDidMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
   display: flex;
   flex-direction: column;
   background: var(--surface-primary);
-  border-radius: 0;
-  box-shadow: none;
 }
 
 .pane-body {
   flex: 1;
   min-height: 0;
   width: 100%;
-}
 
-.pane-body :deep(.monaco-editor),
-.pane-body :deep(.monaco-editor-vue3) {
-  height: 100%;
+  :deep(.monaco-editor),
+  :deep(.monaco-editor-vue3) {
+    height: 100%;
+  }
 }
 
 .diff-body {

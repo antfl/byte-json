@@ -26,11 +26,9 @@ const props = withDefaults(
   defineProps<{
     icon: IconButtonIcon
     title: string
-    variant?: 'ghost' | 'primary'
     active?: boolean
   }>(),
   {
-    variant: 'ghost',
     active: false
   }
 )
@@ -59,7 +57,7 @@ const handleClick = () => {
 <template>
   <button
     type="button"
-    :class="['icon-button', `icon-button--${props.variant}`, { 'icon-button--active': props.active }]"
+    :class="['icon-button', { 'icon-button--active': props.active }]"
     :title="props.title"
     :aria-label="props.title"
     @click="handleClick"
@@ -68,62 +66,61 @@ const handleClick = () => {
   </button>
 </template>
 
-<style scoped>
+<style scoped lang="less">
 .icon-button {
   width: var(--icon-button-size);
   height: var(--icon-button-size);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-base);
   border: none;
+  border-radius: var(--radius-base);
   background-color: transparent;
   color: var(--text-primary);
   cursor: pointer;
+  position: relative;
   transition: background-color 0.2s ease, color 0.2s ease;
-}
 
-.icon-button__icon {
-  width: 100%;
-  height: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
+  &:hover {
+    background-color: var(--button-hover-bg);
+  }
 
-.icon-button__icon :deep(svg) {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
+  &__icon {
+    width: 100%;
+    height: 100%;
+    transform: scale(1.3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
-.icon-button--ghost {
-  color: var(--text-primary);
-}
+    :deep(svg) {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  }
 
-.icon-button--ghost:hover {
-  background-color: var(--button-hover-bg);
-}
+  &.icon-button--active {
+    background-color: var(--button-hover-bg);
+    color: var(--color-brand);
 
-.icon-button--ghost.icon-button--active {
-  background-color: var(--button-active-bg);
-  color: var(--button-active-color);
-}
+    &::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 40%;
+      height: 2px;
+      border-radius: 999px;
+      background-color: var(--color-brand);
+      transform: translateX(-50%);
+    }
+  }
 
-.icon-button--primary {
-  background-color: var(--accent-surface);
-  color: var(--color-brand);
-}
-
-.icon-button--primary:hover,
-.icon-button--primary.icon-button--active {
-  background-color: var(--button-active-bg);
-  color: var(--button-active-color);
-}
-
-.icon-button:focus-visible {
-  outline: 2px solid var(--color-brand);
-  outline-offset: 3px;
+  &:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 3px;
+  }
 }
 </style>
 

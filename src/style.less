@@ -1,20 +1,25 @@
 :root {
   color-scheme: dark;
-  font-family: 'Inter', 'HarmonyOS Sans', 'Microsoft YaHei', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  --color-brand: #5b8def;
+
+  --font-sans: 'Inter', 'HarmonyOS Sans', 'Microsoft YaHei', system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  --font-code: '"Cascadia Code", "Fira Code", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace';
+
+  --color-brand: #4d6bff;
   --text-primary: #f1f5f9;
   --text-muted: #cbd5f5;
   --text-contrast: #0b1120;
   --radius-base: 5px;
   --icon-button-size: 26px;
-  --button-hover-bg: rgba(255, 255, 255, 0.06);
-  --button-active-bg: #2563eb;
+  --button-hover-bg: rgba(77, 107, 255, 0.06);
+  --button-active-bg: #4d6bff;
   --button-active-color: #ffffff;
   --app-gradient-start: #2b2d30;
   --app-gradient-end: #232427;
@@ -38,7 +43,7 @@
 
 [data-theme='light'] {
   color-scheme: light;
-  --color-brand: #2563eb;
+  --color-brand: #4d6bff;
   --text-primary: #1f2937;
   --text-muted: #6b7280;
   --text-contrast: #ffffff;
@@ -52,8 +57,8 @@
   --border-subtle: rgba(148, 163, 184, 0.28);
   --border-strong: rgba(148, 163, 184, 0.42);
   --accent-surface: rgba(37, 99, 235, 0.12);
-  --button-hover-bg: rgba(15, 23, 42, 0.08);
-  --button-active-bg: #2563eb;
+  --button-hover-bg: rgba(15, 23, 42, 0.1);
+  --button-active-bg: #4d6bff;
   --button-active-color: #ffffff;
   --status-neutral: #94a3b8;
   --status-ok: #16a34a;
@@ -78,7 +83,7 @@ body {
 }
 
 body {
-  display: block;
+  font-family: var(--font-sans);
 }
 
 #app {
@@ -91,5 +96,7 @@ a {
 }
 
 button {
-  font-family: inherit;
+  font: inherit;
+  color: inherit;
 }
+

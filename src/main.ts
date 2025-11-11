@@ -1,5 +1,5 @@
 import { createApp } from 'vue'
-import './style.css'
+import './style.less'
 import 'monaco-editor/min/vs/editor/editor.main.css'
 import App from './App.vue'
 

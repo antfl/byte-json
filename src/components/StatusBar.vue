@@ -35,16 +35,16 @@ const dotClass = computed(() => {
   </footer>
 </template>
 
-<style scoped>
+<style scoped lang="less">
 .status-bar {
   height: 25px;
-  padding: 0 16px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid var(--border-subtle);
+  padding: 0 16px;
   background: var(--surface-status);
-  flex-shrink: 0;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .status-left,
@@ -61,34 +61,36 @@ const dotClass = computed(() => {
   height: 8px;
   border-radius: 8px;
   background-color: var(--status-neutral);
-}
 
-.dot.ok {
-  background-color: var(--status-ok);
-}
+  &.ok {
+    background-color: var(--status-ok);
+  }
 
-.dot.warn {
-  background-color: var(--status-warn);
-}
+  &.warn {
+    background-color: var(--status-warn);
+  }
 
-.dot.error {
-  background-color: var(--status-error);
+  &.error {
+    background-color: var(--status-error);
+  }
 }
 
 .loading {
   color: var(--color-brand);
 }
 
-.message.success {
-  color: #22c55e;
-}
+.message {
+  &.success {
+    color: #22c55e;
+  }
 
-.message.error {
-  color: #ef4444;
-}
+  &.error {
+    color: #ef4444;
+  }
 
-.message.info {
-  color: var(--color-brand);
+  &.info {
+    color: var(--color-brand);
+  }
 }
 </style>
 

@@ -111,33 +111,33 @@ function isActive(panel: PanelKey, action: ActionKey) {
   </header>
 </template>
 
-<style scoped>
+<style scoped lang="less">
 .top-bar {
   height: 40px;
   display: flex;
   align-items: center;
-  background: var(--surface-secondary);
+  background: var(--surface-primary);
   border-bottom: 1px solid var(--border-subtle);
-}
 
-.logo {
-  width: 26px;
-  height: 26px;
+  .logo {
+    width: 26px;
+    height: 26px;
+  }
 }
 
 .top-bar-actions {
   flex: 1;
-  padding: 8px 16px 8px calc(var(--sidebar-width) + 16px);
   display: flex;
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-}
+  padding: 8px 16px 8px calc(var(--sidebar-width) + 16px);
 
-.top-bar-actions--diff {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  &--diff {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
 }
 
 .actions-group {
@@ -150,16 +150,16 @@ function isActive(panel: PanelKey, action: ActionKey) {
 .actions-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 18px;
 }
 
 @media (max-width: 960px) {
   .top-bar-actions {
     padding-left: 8px;
-  }
 
-  .top-bar-actions--diff {
-    grid-template-columns: 1fr;
+    &--diff {
+      grid-template-columns: 1fr;
+    }
   }
 }
 </style>

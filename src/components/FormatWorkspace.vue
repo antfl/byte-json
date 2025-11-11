@@ -32,7 +32,7 @@ const emit = defineEmits<{
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="less">
 .editor-pane {
   min-width: 0;
   min-height: 0;
@@ -40,46 +40,41 @@ const emit = defineEmits<{
   display: flex;
   flex-direction: column;
   background: var(--surface-primary);
-  border-radius: 0;
-}
 
-.editor-pane:not(.editor-pane--source) {
-  box-shadow: none;
-}
+  &.text-input-pane {
+    position: relative;
+    border-right: 1px solid var(--border-strong);
 
-.text-input-pane {
-  position: relative;
-  border-right: 1px solid var(--border-strong);
-}
+    textarea {
+      width: 100%;
+      height: 100%;
+      padding: 16px;
+      border: none;
+      outline: none;
+      resize: none;
+      box-sizing: border-box;
+      background: transparent;
+      color: var(--text-primary);
+      font-family: var(--font-code);
+      font-size: 14px;
+      line-height: 22px;
 
-.text-input-pane textarea {
-  width: 100%;
-  height: 100%;
-  border: none;
-  outline: none;
-  resize: none;
-  background: transparent;
-  color: var(--text-primary);
-  font-family: '"Cascadia Code", "Fira Code", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace',serif;
-  font-size: 14px;
-  line-height: 22px;
-  padding: 16px;
-  box-sizing: border-box;
-}
-
-.text-input-pane textarea::placeholder {
-  color: var(--text-muted);
+      &::placeholder {
+        color: var(--text-muted);
+      }
+    }
+  }
 }
 
 .pane-body {
   flex: 1;
   min-height: 0;
   width: 100%;
-}
 
-.pane-body :deep(.monaco-editor),
-.pane-body :deep(.monaco-editor-vue3) {
-  height: 100%;
+  :deep(.monaco-editor),
+  :deep(.monaco-editor-vue3) {
+    height: 100%;
+  }
 }
 </style>
 

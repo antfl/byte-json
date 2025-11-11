@@ -23,14 +23,12 @@ const themeIcon = computed(() => (props.isDarkTheme ? 'moon' : 'sun'))
       <div class="mode-switch">
         <IconButton
           icon="format"
-          :variant="isFormatMode ? 'primary' : 'ghost'"
           :active="isFormatMode"
           title="JSON 预览模式"
           @click="emit('update:mode', 'format')"
         />
         <IconButton
           icon="diff"
-          :variant="!isFormatMode ? 'primary' : 'ghost'"
           :active="!isFormatMode"
           title="对比"
           @click="emit('update:mode', 'diff')"
@@ -46,57 +44,57 @@ const themeIcon = computed(() => (props.isDarkTheme ? 'moon' : 'sun'))
   </aside>
 </template>
 
-<style scoped>
+<style scoped lang="less">
 .side-toolbar {
   width: var(--sidebar-width);
-  padding: 6px 4px;
-  background: var(--surface-secondary);
-  border-right: 1px solid var(--border-subtle);
-  backdrop-filter: blur(10px);
+  padding: 12px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
-}
+  background: var(--surface-primary);
+  border-right: 1px solid var(--border-subtle);
+  backdrop-filter: blur(10px);
 
-.toolbar-section {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
+  .toolbar-section {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
 
-.mode-switch {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  .mode-switch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
 }
 
 @media (max-width: 960px) {
   .side-toolbar {
     width: 100%;
+    height: 40px;
     flex-direction: row;
     justify-content: center;
     gap: 12px;
     padding: 4px 8px;
     border-right: none;
     border-bottom: 1px solid var(--border-subtle);
-    height: 40px;
-  }
 
-  .toolbar-section {
-    flex-direction: row;
-    gap: 12px;
-    justify-content: center;
-  }
+    .toolbar-section {
+      flex-direction: row;
+      gap: 12px;
+      justify-content: center;
+    }
 
-  .mode-switch {
-    flex-direction: row;
+    .mode-switch {
+      flex-direction: row;
+    }
   }
 }
 </style>
