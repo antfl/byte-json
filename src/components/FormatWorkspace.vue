@@ -18,39 +18,107 @@ const emit = defineEmits<{
 }>()
 
 let sourceEditorInstance: MonacoEditorNS.IStandaloneCodeEditor | null = null
-let cursorChangeDisposable: MonacoEditorNS.IDisposable | null = null
+let previewEditorInstance: MonacoEditorNS.IStandaloneCodeEditor | null = null
+let sourceCursorChangeDisposable: MonacoEditorNS.IDisposable | null = null
+let previewCursorChangeDisposable: MonacoEditorNS.IDisposable | null = null
+let sourceFocusDisposable: MonacoEditorNS.IDisposable | null = null
+let previewFocusDisposable: MonacoEditorNS.IDisposable | null = null
 
-function handleSourceEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) {
-  sourceEditorInstance = editor
-  emit('editor-mounted', editor)
-  
-  // 监听光标位置变化
-  cursorChangeDisposable = editor.onDidChangeCursorPosition((e) => {
-    const position = editor.getPosition()
-    if (position) {
-      emit('cursor-change', {
-        line: position.lineNumber,
-        column: position.column
-      })
-    } else {
-      emit('cursor-change', null)
-    }
-  })
-  
-  // 初始化光标位置
+function updateCursorPosition(editor: MonacoEditorNS.IStandaloneCodeEditor) {
   const position = editor.getPosition()
   if (position) {
     emit('cursor-change', {
       line: position.lineNumber,
       column: position.column
     })
+  } else {
+    emit('cursor-change', null)
+  }
+}
+
+function handleSourceEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) {
+  sourceEditorInstance = editor
+  emit('editor-mounted', editor)
+  
+  // 监听源编辑器焦点变化
+  sourceFocusDisposable = editor.onDidFocusEditorWidget(() => {
+    // 当源编辑器获得焦点时，监听其光标位置变化
+    if (sourceCursorChangeDisposable) {
+      sourceCursorChangeDisposable.dispose()
+    }
+    if (previewCursorChangeDisposable) {
+      previewCursorChangeDisposable.dispose()
+      previewCursorChangeDisposable = null
+    }
+    sourceCursorChangeDisposable = editor.onDidChangeCursorPosition(() => {
+      updateCursorPosition(editor)
+    })
+    updateCursorPosition(editor)
+  })
+  
+  // 初始化：监听源编辑器光标位置变化（如果它当前有焦点）
+  sourceCursorChangeDisposable = editor.onDidChangeCursorPosition(() => {
+    // 只有当源编辑器有焦点时才更新
+    if (editor.hasTextFocus()) {
+      updateCursorPosition(editor)
+    }
+  })
+  
+  // 初始化光标位置
+  if (editor.hasTextFocus()) {
+    updateCursorPosition(editor)
+  }
+}
+
+function handlePreviewEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) {
+  previewEditorInstance = editor
+  
+  // 监听预览编辑器焦点变化
+  previewFocusDisposable = editor.onDidFocusEditorWidget(() => {
+    // 当预览编辑器获得焦点时，监听其光标位置变化
+    if (previewCursorChangeDisposable) {
+      previewCursorChangeDisposable.dispose()
+    }
+    if (sourceCursorChangeDisposable) {
+      sourceCursorChangeDisposable.dispose()
+      sourceCursorChangeDisposable = null
+    }
+    previewCursorChangeDisposable = editor.onDidChangeCursorPosition(() => {
+      updateCursorPosition(editor)
+    })
+    updateCursorPosition(editor)
+  })
+  
+  // 初始化：监听预览编辑器光标位置变化（如果它当前有焦点）
+  previewCursorChangeDisposable = editor.onDidChangeCursorPosition(() => {
+    // 只有当预览编辑器有焦点时才更新
+    if (editor.hasTextFocus()) {
+      updateCursorPosition(editor)
+    }
+  })
+  
+  // 初始化光标位置
+  if (editor.hasTextFocus()) {
+    updateCursorPosition(editor)
   }
 }
 
 onUnmounted(() => {
-  if (cursorChangeDisposable) {
-    cursorChangeDisposable.dispose()
-    cursorChangeDisposable = null
+  if (sourceCursorChangeDisposable) {
+    sourceCursorChangeDisposable.dispose()
+    sourceCursorChangeDisposable = null
+  }
+  if (previewCursorChangeDisposable) {
+    previewCursorChangeDisposable.dispose()
+    previewCursorChangeDisposable = null
+  }
+  if (sourceFocusDisposable) {
+    sourceFocusDisposable.dispose()
+    sourceFocusDisposable = null
+  }
+  if (previewFocusDisposable) {
+    previewFocusDisposable.dispose()
+    previewFocusDisposable = null
   }
 })
 </script>
@@ -74,6 +142,7 @@ onUnmounted(() => {
       language="json"
       class="pane-body"
       :options="previewEditorOptions"
+      @editorDidMount="handlePreviewEditorMount"
     />
   </div>
 </template>

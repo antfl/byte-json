@@ -736,6 +736,7 @@ function handleOpenAbout() {
           :diff-editor-options="diffEditorOptions"
           @mount="handleDiffMount"
           @update:target="state.target = $event"
+          @cursor-change="cursorPosition = $event"
         />
       </section>
     </div>
@@ -744,7 +745,7 @@ function handleOpenAbout() {
       :diff-state="diffState"
       :busy-panel="busyPanel"
       :message="message"
-      :cursor-position="mode === 'format' ? cursorPosition : null"
+      :cursor-position="cursorPosition"
       :error-position="mode === 'format' && !previewIsValid ? errorPosition : null"
     />
 
