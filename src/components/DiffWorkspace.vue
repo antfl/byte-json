@@ -2,6 +2,7 @@
 import { onUnmounted } from 'vue'
 import { DiffEditor } from 'monaco-editor-vue3'
 import type { editor as MonacoEditorNS } from 'monaco-editor'
+import type { IDisposable } from 'monaco-editor'
 
 defineProps<{
   source: string
@@ -16,10 +17,10 @@ const emit = defineEmits<{
   (e: 'cursor-change', position: { line: number; column: number } | null): void
 }>()
 
-let sourceCursorDisposable: MonacoEditorNS.IDisposable | null = null
-let targetCursorDisposable: MonacoEditorNS.IDisposable | null = null
-let sourceFocusDisposable: MonacoEditorNS.IDisposable | null = null
-let targetFocusDisposable: MonacoEditorNS.IDisposable | null = null
+let sourceCursorDisposable: IDisposable | null = null
+let targetCursorDisposable: IDisposable | null = null
+let sourceFocusDisposable: IDisposable | null = null
+let targetFocusDisposable: IDisposable | null = null
 
 function updateCursorPosition(editor: MonacoEditorNS.IStandaloneCodeEditor) {
   const position = editor.getPosition()

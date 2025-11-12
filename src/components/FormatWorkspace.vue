@@ -2,6 +2,7 @@
 import { onUnmounted } from 'vue'
 import CodeEditor from 'monaco-editor-vue3'
 import type { editor as MonacoEditorNS } from 'monaco-editor'
+import type { IDisposable } from 'monaco-editor'
 
 defineProps<{
   source: string
@@ -17,12 +18,10 @@ const emit = defineEmits<{
   (e: 'editor-mounted', editor: MonacoEditorNS.IStandaloneCodeEditor): void
 }>()
 
-let sourceEditorInstance: MonacoEditorNS.IStandaloneCodeEditor | null = null
-let previewEditorInstance: MonacoEditorNS.IStandaloneCodeEditor | null = null
-let sourceCursorChangeDisposable: MonacoEditorNS.IDisposable | null = null
-let previewCursorChangeDisposable: MonacoEditorNS.IDisposable | null = null
-let sourceFocusDisposable: MonacoEditorNS.IDisposable | null = null
-let previewFocusDisposable: MonacoEditorNS.IDisposable | null = null
+let sourceCursorChangeDisposable: IDisposable | null = null
+let previewCursorChangeDisposable: IDisposable | null = null
+let sourceFocusDisposable: IDisposable | null = null
+let previewFocusDisposable: IDisposable | null = null
 
 function updateCursorPosition(editor: MonacoEditorNS.IStandaloneCodeEditor) {
   const position = editor.getPosition()
@@ -37,7 +36,6 @@ function updateCursorPosition(editor: MonacoEditorNS.IStandaloneCodeEditor) {
 }
 
 function handleSourceEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) {
-  sourceEditorInstance = editor
   emit('editor-mounted', editor)
   
   // 监听源编辑器焦点变化
@@ -71,7 +69,6 @@ function handleSourceEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) {
 }
 
 function handlePreviewEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) {
-  previewEditorInstance = editor
   
   // 监听预览编辑器焦点变化
   previewFocusDisposable = editor.onDidFocusEditorWidget(() => {
