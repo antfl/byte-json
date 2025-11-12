@@ -8,6 +8,8 @@ const props = defineProps<{
   diffState: DiffState
   busyPanel: PanelKey | null
   message: StatusMessage
+  cursorPosition: { line: number; column: number } | null
+  errorPosition: { line: number; column: number } | null
 }>()
 
 const dotClass = computed(() => {
@@ -26,6 +28,12 @@ const dotClass = computed(() => {
     <div class="status-left">
       <span class="dot" :class="dotClass" />
       <span>{{ diffState.message }}</span>
+      <span v-if="errorPosition" class="error-info">
+        错误位置：第 {{ errorPosition.line }} 行，第 {{ errorPosition.column }} 列
+      </span>
+      <span v-if="cursorPosition" class="cursor-info">
+        行 {{ cursorPosition.line }}, 列 {{ cursorPosition.column }}
+      </span>
     </div>
     <div class="status-right">
       <span v-if="busyPanel" class="loading">处理中...</span>
@@ -54,6 +62,20 @@ const dotClass = computed(() => {
   gap: 8px;
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.error-info {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border-subtle);
+  color: var(--status-error);
+}
+
+.cursor-info {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
 }
 
 .dot {

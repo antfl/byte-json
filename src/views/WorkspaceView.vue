@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { createDefaultOptions } from 'monaco-editor-vue3'
 import type { editor as MonacoEditorNS } from 'monaco-editor'
 import * as monaco from 'monaco-editor'
@@ -18,6 +18,7 @@ import { deleteSnippet, getSnippet, listSnippets, saveSnippet } from '../service
 import type { StoredSnippet } from '../services/storageStore'
 import type { PanelKey, ToolAction, MessageLevel, DiffState } from '../types/jsonTools'
 import { useTheme } from '../composables/useTheme'
+import { parseJsonError } from '../utils/format'
 
 const { theme, themeToggleTitle, isDarkTheme, toggleTheme } = useTheme()
 const router = useRouter()
@@ -50,6 +51,9 @@ const sourceInput = ref<HTMLInputElement | null>(null)
 const targetInput = ref<HTMLInputElement | null>(null)
 const previewContent = ref('')
 const previewIsValid = ref(true)
+const cursorPosition = ref<{ line: number; column: number } | null>(null)
+const sourceEditorInstance = ref<MonacoEditorNS.IStandaloneCodeEditor | null>(null)
+const errorPosition = ref<{ line: number; column: number } | null>(null)
 
 const storageDialog = reactive({
   visible: false,
@@ -91,6 +95,11 @@ Object.assign(baseEditorOptions, {
   showFoldingControls: 'always',
   unfoldOnClickAfterEndOfLine: true
 })
+
+const sourceEditorOptions = computed(() => ({
+  ...baseEditorOptions,
+  readOnly: false
+}))
 
 const previewEditorOptions = computed(() => ({
   ...baseEditorOptions,
@@ -237,8 +246,70 @@ watch(
       const parsed = JSON.parse(source)
       previewContent.value = JSON.stringify(parsed, null, 2)
       previewIsValid.value = true
+      errorPosition.value = null
     } catch (error) {
-      previewContent.value = '// 无法解析 JSON，请检查输入'
+      const errorInfo = parseJsonError(error, source)
+      if (errorInfo) {
+        errorPosition.value = {
+          line: errorInfo.line,
+          column: errorInfo.column
+        }
+        
+        // 提取错误位置前后各20个字符的上下文
+        const contextLength = 20
+        const errorPos = errorInfo.position
+        const startPos = Math.max(0, errorPos - contextLength)
+        const endPos = Math.min(source.length, errorPos + contextLength + 1)
+        const context = source.substring(startPos, endPos)
+        const errorCharIndexInContext = errorPos - startPos
+        
+        // 转义特殊字符以便在注释中显示
+        const escapeForComment = (str: string) => {
+          return str
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t')
+        }
+        
+        const escapedContext = escapeForComment(context)
+        const beforeError = escapedContext.substring(0, errorCharIndexInContext)
+        const errorChar = errorInfo.errorChar || (errorPos < source.length ? source[errorPos] : '')
+        const afterError = escapedContext.substring(errorCharIndexInContext + 1)
+        
+        // 如果前面有内容，添加省略号
+        const prefixEllipsis = startPos > 0 ? '...' : ''
+        // 如果后面有内容，添加省略号
+        const suffixEllipsis = endPos < source.length ? '...' : ''
+        
+        // 计算指示器位置（考虑前缀省略号）
+        const prefixLength = prefixEllipsis.length
+        const indicatorPos = prefixLength + beforeError.length
+        const errorCharDisplay = errorChar ? `[${errorChar}]` : '?'
+        
+        // 构建美观的错误提示
+        previewContent.value = `// ════════════════════════════════════════════════════════════
+//  JSON 解析错误
+// ════════════════════════════════════════════════════════════
+//
+// 错误位置
+//    第 ${errorInfo.line} 行，第 ${errorInfo.column} 列
+//
+// 错误原因
+//    ${errorInfo.message}
+//
+// 错误上下文（前后各 ${contextLength} 个字符）
+//    ${prefixEllipsis}${beforeError}${errorCharDisplay}${afterError}${suffixEllipsis}
+//    ${' '.repeat(indicatorPos)}${'^'.repeat(errorCharDisplay.length)}
+//
+// ════════════════════════════════════════════════════════════`
+      } else {
+        errorPosition.value = null
+        previewContent.value = `// JSON 解析错误
+//
+// 无法解析 JSON，请检查输入
+//
+${source}`
+      }
       previewIsValid.value = false
     }
   },
@@ -651,8 +722,11 @@ function handleOpenAbout() {
           :source="state.source"
           :preview-content="previewContent"
           :editor-theme="editorTheme"
+          :source-editor-options="sourceEditorOptions"
           :preview-editor-options="previewEditorOptions"
           @update:source="state.source = $event"
+          @cursor-change="cursorPosition = $event"
+          @editor-mounted="sourceEditorInstance = $event"
         />
         <DiffWorkspace
           v-else
@@ -670,6 +744,8 @@ function handleOpenAbout() {
       :diff-state="diffState"
       :busy-panel="busyPanel"
       :message="message"
+      :cursor-position="mode === 'format' ? cursorPosition : null"
+      :error-position="mode === 'format' && !previewIsValid ? errorPosition : null"
     />
 
     <input
