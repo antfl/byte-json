@@ -581,8 +581,24 @@ function patchModelSetValue(model: monaco.editor.ITextModel | null) {
 
 function handleDiffMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
   diffInstance.value = editor
-  const originalModel = editor.getOriginalEditor().getModel()
-  const modifiedModel = editor.getModifiedEditor().getModel()
+  const originalEditor = editor.getOriginalEditor()
+  const modifiedEditor = editor.getModifiedEditor()
+  const originalModel = originalEditor.getModel()
+  const modifiedModel = modifiedEditor.getModel()
+
+  // 为两个编辑器单独配置折叠选项
+  originalEditor.updateOptions({
+    folding: true,
+    foldingStrategy: 'indentation',
+    showFoldingControls: 'always',
+    unfoldOnClickAfterEndOfLine: true
+  })
+  modifiedEditor.updateOptions({
+    folding: true,
+    foldingStrategy: 'indentation',
+    showFoldingControls: 'always',
+    unfoldOnClickAfterEndOfLine: true
+  })
 
   patchModelSetValue(originalModel)
   patchModelSetValue(modifiedModel)
