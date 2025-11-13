@@ -26,11 +26,24 @@ const differ = createDiffer({
   arrays: { detectMove: false, includeValueOnMove: false }
 })
 
-const state = reactive({
-  source: `{
+// 从 localStorage 恢复左侧 JSON 字符串
+const getStoredSource = (): string => {
+  try {
+    const stored = localStorage.getItem('byte-json-source')
+    if (stored) {
+      return stored
+    }
+  } catch (error) {
+    console.warn('无法读取 localStorage:', error)
+  }
+  return `{
   "name": "Byte JSON",
   "description": "一个轻量的 JSON 工具"
-}`,
+}`
+}
+
+const state = reactive({
+  source: getStoredSource(),
   target: `{
   "name": "Byte JSON",
   "description": "一个轻量的 JSON 工具",
@@ -233,6 +246,18 @@ watch(
       diffInstance.value = null
     } else if (previewIsValid.value) {
       state.target = previewContent.value
+    }
+  }
+)
+
+// 监听 source 变化并保存到 localStorage
+watch(
+  () => state.source,
+  (source) => {
+    try {
+      localStorage.setItem('byte-json-source', source)
+    } catch (error) {
+      console.warn('无法保存到 localStorage:', error)
     }
   }
 )
