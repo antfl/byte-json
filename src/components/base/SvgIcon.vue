@@ -1,8 +1,26 @@
 <script setup lang="ts">
-import chevronDownIcon from '../../assets/icons/chevron-down.svg?raw'
-import checkIcon from '../../assets/icons/check.svg?raw'
+const iconModules = import.meta.glob('../../assets/icons/*.svg', { 
+  as: 'raw',
+  eager: true 
+})
 
-type SvgIconName = 'chevron-down' | 'check'
+function getIconName(path: string): string {
+  const match = path.match(/\/([^/]+)\.svg$/)
+  return match ? match[1] : ''
+}
+
+const iconMap: Record<string, string> = {}
+
+for (const path in iconModules) {
+  const iconName = getIconName(path)
+  if (iconName) {
+    iconMap[iconName] = iconModules[path] as string
+  }
+}
+
+type SvgIconName = string
+
+export type { SvgIconName }
 
 type ClassValue = string | Record<string, boolean> | Array<string | Record<string, boolean>>
 
@@ -10,16 +28,9 @@ const props = defineProps<{
   name: SvgIconName
   class?: ClassValue
 }>()
-
-const iconMap: Record<SvgIconName, string> = {
-  'chevron-down': chevronDownIcon,
-  'check': checkIcon
-}
-
-const iconSvg = iconMap[props.name]
 </script>
 
 <template>
-  <span :class="props.class" v-html="iconSvg" />
+  <span :class="props.class" v-bind="$attrs" v-html="iconMap[name]" />
 </template>
 

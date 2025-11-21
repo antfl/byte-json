@@ -1,46 +1,8 @@
 <script setup lang="ts">
-type IconButtonIcon =
-  | 'diff'
-  | 'import'
-  | 'export'
-  | 'format'
-  | 'minify'
-  | 'repair'
-  | 'clear'
-  | 'save'
-  | 'storage'
-  | 'sun'
-  | 'moon'
-  | 'info'
-  | 'auto'
-  | 'deep'
-  | 'case'
-  | 'encode'
-  | 'decode'
-  | 'trim'
-  | 'stats'
+import SvgIcon from './SvgIcon.vue'
+import type { SvgIconName } from './SvgIcon.vue'
 
-export type { IconButtonIcon }
-
-import autoIcon from '../../assets/icons/auto.svg?raw'
-import caseIcon from '../../assets/icons/case.svg?raw'
-import clearIcon from '../../assets/icons/clear.svg?raw'
-import decodeIcon from '../../assets/icons/decode.svg?raw'
-import diffIcon from '../../assets/icons/diff.svg?raw'
-import encodeIcon from '../../assets/icons/encode.svg?raw'
-import exportIcon from '../../assets/icons/export.svg?raw'
-import formatIcon from '../../assets/icons/format.svg?raw'
-import importIcon from '../../assets/icons/import.svg?raw'
-import minifyIcon from '../../assets/icons/minify.svg?raw'
-import moonIcon from '../../assets/icons/moon.svg?raw'
-import repairIcon from '../../assets/icons/repair.svg?raw'
-import saveIcon from '../../assets/icons/save.svg?raw'
-import storageIcon from '../../assets/icons/storage.svg?raw'
-import sunIcon from '../../assets/icons/sun.svg?raw'
-import infoIcon from '../../assets/icons/info.svg?raw'
-import deepIcon from '../../assets/icons/deep.svg?raw'
-import trimIcon from '../../assets/icons/trim.svg?raw'
-import statsIcon from '../../assets/icons/stats.svg?raw'
+export type IconButtonIcon = SvgIconName
 
 const props = withDefaults(
   defineProps<{
@@ -48,7 +10,7 @@ const props = withDefaults(
     title: string
     active?: boolean
     showLabel?: boolean
-    [key: string]: any // 允许传递任意属性
+    [key: string]: any
   }>(),
   {
     active: false,
@@ -59,28 +21,6 @@ const props = withDefaults(
 const emit = defineEmits<{
   (event: 'click'): void
 }>()
-
-const ICON_MAP: Record<IconButtonIcon, string> = {
-  auto: autoIcon,
-  case: caseIcon,
-  clear: clearIcon,
-  decode: decodeIcon,
-  diff: diffIcon,
-  encode: encodeIcon,
-  export: exportIcon,
-  format: formatIcon,
-  import: importIcon,
-  minify: minifyIcon,
-  moon: moonIcon,
-  repair: repairIcon,
-  save: saveIcon,
-  storage: storageIcon,
-  sun: sunIcon,
-  info: infoIcon,
-  deep: deepIcon,
-  trim: trimIcon,
-  stats: statsIcon
-}
 
 const handleClick = () => {
   emit('click')
@@ -96,7 +36,7 @@ const handleClick = () => {
     v-bind="$attrs"
     @click="handleClick"
   >
-    <span class="icon-button__icon" aria-hidden="true" v-html="ICON_MAP[props.icon]" />
+    <SvgIcon :name="props.icon" class="icon-button__icon" aria-hidden="true" />
     <span v-if="props.showLabel" class="icon-button__label">{{ props.title }}</span>
   </button>
 </template>
