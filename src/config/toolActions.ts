@@ -2,10 +2,9 @@
  * 工具操作按钮配置
  */
 import type { ToolType } from '@/types/jsonTools'
-import type { IconButtonIcon } from '@/components/base/IconButton.vue'
 
 export type ActionKey = 'import' | 'save' | 'export' | 'format' | 'minify' | 'repair' | 'clear' | 'case' | 'encode' | 'decode' | 'trim' | 'stats'
-export type ActionIcon = Extract<IconButtonIcon, 'import' | 'save' | 'export' | 'format' | 'minify' | 'repair' | 'clear' | 'case' | 'encode' | 'decode' | 'trim' | 'stats'>
+export type ActionIcon = 'import' | 'save' | 'export' | 'format' | 'minify' | 'repair' | 'clear' | 'case' | 'encode' | 'decode' | 'trim' | 'stats'
 
 export interface ActionConfig {
   key: ActionKey

@@ -6,7 +6,7 @@ const iconModules = import.meta.glob('../../assets/icons/*.svg', {
 
 function getIconName(path: string): string {
   const match = path.match(/\/([^/]+)\.svg$/)
-  return match ? match[1] : ''
+  return match?.[1] ?? ''
 }
 
 const iconMap: Record<string, string> = {}
