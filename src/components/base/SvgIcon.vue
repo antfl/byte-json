@@ -1,23 +1,4 @@
 <script setup lang="ts">
-const iconModules = import.meta.glob('../../assets/icons/*.svg', { 
-  as: 'raw',
-  eager: true 
-})
-
-function getIconName(path: string): string {
-  const match = path.match(/\/([^/]+)\.svg$/)
-  return match?.[1] ?? ''
-}
-
-const iconMap: Record<string, string> = {}
-
-for (const path in iconModules) {
-  const iconName = getIconName(path)
-  if (iconName) {
-    iconMap[iconName] = iconModules[path] as string
-  }
-}
-
 type SvgIconName = string
 
 export type { SvgIconName }
@@ -31,6 +12,8 @@ const props = defineProps<{
 </script>
 
 <template>
-  <span :class="props.class" v-bind="$attrs" v-html="iconMap[name]" />
+  <svg :class="props.class" v-bind="$attrs" aria-hidden="true">
+    <use :xlink:href="`#icon-${props.name}`" />
+  </svg>
 </template>
 
