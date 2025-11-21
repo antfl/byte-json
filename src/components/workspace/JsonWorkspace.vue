@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onUnmounted } from 'vue'
+import { onUnmounted, watch } from 'vue'
 import CodeEditor from 'monaco-editor-vue3'
 import type { editor as MonacoEditorNS } from 'monaco-editor'
 import type { IDisposable } from 'monaco-editor'
+import * as monaco from 'monaco-editor'
 
-defineProps<{
+const props = defineProps<{
   source: string
   previewContent: string
   editorTheme: string
@@ -37,10 +38,9 @@ function updateCursorPosition(editor: MonacoEditorNS.IStandaloneCodeEditor) {
 
 function handleSourceEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) {
   emit('editor-mounted', editor)
+  monaco.editor.setTheme(props.editorTheme)
   
-  // 监听源编辑器焦点变化
   sourceFocusDisposable = editor.onDidFocusEditorWidget(() => {
-    // 当源编辑器获得焦点时，监听其光标位置变化
     if (sourceCursorChangeDisposable) {
       sourceCursorChangeDisposable.dispose()
     }
@@ -54,25 +54,21 @@ function handleSourceEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) {
     updateCursorPosition(editor)
   })
   
-  // 初始化：监听源编辑器光标位置变化（如果它当前有焦点）
   sourceCursorChangeDisposable = editor.onDidChangeCursorPosition(() => {
-    // 只有当源编辑器有焦点时才更新
     if (editor.hasTextFocus()) {
       updateCursorPosition(editor)
     }
   })
   
-  // 初始化光标位置
   if (editor.hasTextFocus()) {
     updateCursorPosition(editor)
   }
 }
 
 function handlePreviewEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) {
+  monaco.editor.setTheme(props.editorTheme)
   
-  // 监听预览编辑器焦点变化
   previewFocusDisposable = editor.onDidFocusEditorWidget(() => {
-    // 当预览编辑器获得焦点时，监听其光标位置变化
     if (previewCursorChangeDisposable) {
       previewCursorChangeDisposable.dispose()
     }
@@ -86,19 +82,20 @@ function handlePreviewEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) 
     updateCursorPosition(editor)
   })
   
-  // 初始化：监听预览编辑器光标位置变化（如果它当前有焦点）
   previewCursorChangeDisposable = editor.onDidChangeCursorPosition(() => {
-    // 只有当预览编辑器有焦点时才更新
     if (editor.hasTextFocus()) {
       updateCursorPosition(editor)
     }
   })
   
-  // 初始化光标位置
   if (editor.hasTextFocus()) {
     updateCursorPosition(editor)
   }
 }
+
+watch(() => props.editorTheme, (themeName) => {
+  monaco.editor.setTheme(themeName)
+})
 
 onUnmounted(() => {
   if (sourceCursorChangeDisposable) {

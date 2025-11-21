@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onUnmounted } from 'vue'
+import { onUnmounted, watch } from 'vue'
 import CodeEditor from 'monaco-editor-vue3'
 import type { editor as MonacoEditorNS } from 'monaco-editor'
 import type { IDisposable } from 'monaco-editor'
+import * as monaco from 'monaco-editor'
 
-defineProps<{
+const props = defineProps<{
   source: string
   previewContent: string
   editorTheme: string
@@ -37,6 +38,7 @@ function updateCursorPosition(editor: MonacoEditorNS.IStandaloneCodeEditor) {
 
 function handleSourceEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) {
   emit('editor-mounted', editor)
+  monaco.editor.setTheme(props.editorTheme)
   
   sourceFocusDisposable = editor.onDidFocusEditorWidget(() => {
     if (sourceCursorChangeDisposable) {
@@ -64,6 +66,8 @@ function handleSourceEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) {
 }
 
 function handlePreviewEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) {
+  monaco.editor.setTheme(props.editorTheme)
+  
   previewFocusDisposable = editor.onDidFocusEditorWidget(() => {
     if (previewCursorChangeDisposable) {
       previewCursorChangeDisposable.dispose()
@@ -88,6 +92,10 @@ function handlePreviewEditorMount(editor: MonacoEditorNS.IStandaloneCodeEditor) 
     updateCursorPosition(editor)
   }
 }
+
+watch(() => props.editorTheme, (themeName) => {
+  monaco.editor.setTheme(themeName)
+})
 
 onUnmounted(() => {
   if (sourceCursorChangeDisposable) {

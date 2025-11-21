@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onUnmounted } from 'vue'
+import { onUnmounted, watch } from 'vue'
 import { DiffEditor } from 'monaco-editor-vue3'
 import type { editor as MonacoEditorNS } from 'monaco-editor'
 import type { IDisposable } from 'monaco-editor'
+import * as monaco from 'monaco-editor'
 
-defineProps<{
+const props = defineProps<{
   source: string
   target: string
   editorTheme: string
@@ -36,13 +37,12 @@ function updateCursorPosition(editor: MonacoEditorNS.IStandaloneCodeEditor) {
 
 function handleEditorDidMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
   emit('mount', editor)
+  monaco.editor.setTheme(props.editorTheme)
   
   const originalEditor = editor.getOriginalEditor()
   const modifiedEditor = editor.getModifiedEditor()
   
-  // 监听源编辑器（左侧）的焦点变化
   sourceFocusDisposable = originalEditor.onDidFocusEditorWidget(() => {
-    // 当源编辑器获得焦点时，监听其光标位置变化
     if (sourceCursorDisposable) {
       sourceCursorDisposable.dispose()
     }
@@ -56,9 +56,7 @@ function handleEditorDidMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
     updateCursorPosition(originalEditor)
   })
   
-  // 监听目标编辑器（右侧）的焦点变化
   targetFocusDisposable = modifiedEditor.onDidFocusEditorWidget(() => {
-    // 当目标编辑器获得焦点时，监听其光标位置变化
     if (targetCursorDisposable) {
       targetCursorDisposable.dispose()
     }
@@ -72,7 +70,6 @@ function handleEditorDidMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
     updateCursorPosition(modifiedEditor)
   })
   
-  // 初始化：监听两个编辑器的光标位置变化（只有当有焦点时才更新）
   sourceCursorDisposable = originalEditor.onDidChangeCursorPosition(() => {
     if (originalEditor.hasTextFocus()) {
       updateCursorPosition(originalEditor)
@@ -85,13 +82,16 @@ function handleEditorDidMount(editor: MonacoEditorNS.IStandaloneDiffEditor) {
     }
   })
   
-  // 初始化光标位置
   if (originalEditor.hasTextFocus()) {
     updateCursorPosition(originalEditor)
   } else if (modifiedEditor.hasTextFocus()) {
     updateCursorPosition(modifiedEditor)
   }
 }
+
+watch(() => props.editorTheme, (themeName) => {
+  monaco.editor.setTheme(themeName)
+})
 
 onUnmounted(() => {
   if (sourceCursorDisposable) {

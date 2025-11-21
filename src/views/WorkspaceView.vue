@@ -259,75 +259,74 @@ async function refreshCacheItems(showError = true) {
   return success
 }
 
+monaco.editor.defineTheme('byte-tools-dark', {
+  base: 'vs-dark',
+  inherit: true,
+  rules: [
+    { token: '', background: '2B2D30', foreground: 'F1F5F9' },
+    { token: 'string.key.json', foreground: '60A5FA' },
+    { token: 'string.value.json', foreground: 'FBBF24' },
+    { token: 'number', foreground: 'F97316' },
+    { token: 'keyword.json', foreground: 'A78BFA' },
+    { token: 'delimiter', foreground: '94A3B8' }
+  ],
+  colors: {
+    'editor.background': '#2b2d30',
+    'editor.foreground': '#f1f5f9',
+    'editorCursor.foreground': '#5b8def',
+    'editor.lineHighlightBackground': '#35373b',
+    'editorLineNumber.foreground': '#8a9099',
+    'editorLineNumber.activeForeground': '#f1f5f9',
+    'editor.selectionBackground': '#3a3c4240',
+    'editor.inactiveSelectionBackground': '#3a3c4226',
+    'editorWidget.background': '#313338',
+    'editorSuggestWidget.background': '#313338',
+    'scrollbarSlider.background': '#4a4d54aa',
+    'scrollbarSlider.hoverBackground': '#5c6068cc',
+    'diffEditor.insertedTextBackground': '#2f855a33',
+    'diffEditor.removedTextBackground': '#9f123933',
+    'panel.background': '#2b2d30'
+  }
+})
+
+monaco.editor.defineTheme('byte-tools-light', {
+  base: 'vs',
+  inherit: true,
+  rules: [
+    { token: '', background: 'FFFFFF', foreground: '1E293B' },
+    { token: 'string.key.json', foreground: '1D4ED8' },
+    { token: 'string.value.json', foreground: 'CA8A04' },
+    { token: 'number', foreground: 'C2410C' },
+    { token: 'keyword.json', foreground: '6D28D9' },
+    { token: 'delimiter', foreground: '64748B' }
+  ],
+  colors: {
+    'editor.background': '#ffffff',
+    'editor.foreground': '#1e293b',
+    'editorCursor.foreground': '#2b6efa',
+    'editor.lineHighlightBackground': '#e2e8f0',
+    'editorLineNumber.foreground': '#94a3b8',
+    'editorLineNumber.activeForeground': '#1e293b',
+    'editor.selectionBackground': '#cbd5f51f',
+    'editor.inactiveSelectionBackground': '#cbd5f550',
+    'editorWidget.background': '#f8fafc',
+    'editorSuggestWidget.background': '#f8fafc',
+    'scrollbarSlider.background': '#cbd5f580',
+    'scrollbarSlider.hoverBackground': '#94a3b899',
+    'diffEditor.insertedTextBackground': '#22c55e1f',
+    'diffEditor.removedTextBackground': '#f871711f',
+    'panel.background': '#ffffff'
+  }
+})
+
+watch(editorTheme, (themeName) => {
+  monaco.editor.setTheme(themeName)
+})
+
 onMounted(() => {
-  monaco.editor.defineTheme('byte-tools-dark', {
-    base: 'vs-dark',
-    inherit: true,
-    rules: [
-      { token: '', background: '2B2D30', foreground: 'F1F5F9' },
-      { token: 'string.key.json', foreground: '60A5FA' },
-      { token: 'string.value.json', foreground: 'FBBF24' },
-      { token: 'number', foreground: 'F97316' },
-      { token: 'keyword.json', foreground: 'A78BFA' },
-      { token: 'delimiter', foreground: '94A3B8' }
-    ],
-    colors: {
-      'editor.background': '#2b2d30',
-      'editor.foreground': '#f1f5f9',
-      'editorCursor.foreground': '#5b8def',
-      'editor.lineHighlightBackground': '#35373b',
-      'editorLineNumber.foreground': '#8a9099',
-      'editorLineNumber.activeForeground': '#f1f5f9',
-      'editor.selectionBackground': '#3a3c4240',
-      'editor.inactiveSelectionBackground': '#3a3c4226',
-      'editorWidget.background': '#313338',
-      'editorSuggestWidget.background': '#313338',
-      'scrollbarSlider.background': '#4a4d54aa',
-      'scrollbarSlider.hoverBackground': '#5c6068cc',
-      'diffEditor.insertedTextBackground': '#2f855a33',
-      'diffEditor.removedTextBackground': '#9f123933',
-      'panel.background': '#2b2d30'
-    }
-  })
-
-  monaco.editor.defineTheme('byte-tools-light', {
-    base: 'vs',
-    inherit: true,
-    rules: [
-      { token: '', background: 'FFFFFF', foreground: '1E293B' },
-      { token: 'string.key.json', foreground: '1D4ED8' },
-      { token: 'string.value.json', foreground: 'CA8A04' },
-      { token: 'number', foreground: 'C2410C' },
-      { token: 'keyword.json', foreground: '6D28D9' },
-      { token: 'delimiter', foreground: '64748B' }
-    ],
-    colors: {
-      'editor.background': '#ffffff',
-      'editor.foreground': '#1e293b',
-      'editorCursor.foreground': '#2b6efa',
-      'editor.lineHighlightBackground': '#e2e8f0',
-      'editorLineNumber.foreground': '#94a3b8',
-      'editorLineNumber.activeForeground': '#1e293b',
-      'editor.selectionBackground': '#cbd5f51f',
-      'editor.inactiveSelectionBackground': '#cbd5f550',
-      'editorWidget.background': '#f8fafc',
-      'editorSuggestWidget.background': '#f8fafc',
-      'scrollbarSlider.background': '#cbd5f580',
-      'scrollbarSlider.hoverBackground': '#94a3b899',
-      'diffEditor.insertedTextBackground': '#22c55e1f',
-      'diffEditor.removedTextBackground': '#f871711f',
-      'panel.background': '#ffffff'
-    }
-  })
-
-  monaco.editor.setTheme(`byte-tools-${theme.value}`)
-
-  watch(
-    theme,
-    (modeValue) => {
-      monaco.editor.setTheme(`byte-tools-${modeValue}`)
-    }
-  )
+  const storedTheme = localStorage.getItem('byte-tools-theme')
+  const currentTheme = storedTheme === 'dark' || storedTheme === 'light' ? storedTheme : theme.value
+  monaco.editor.setTheme(`byte-tools-${currentTheme}`)
 })
 
 watch(
